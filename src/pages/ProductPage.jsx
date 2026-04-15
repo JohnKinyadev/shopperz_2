@@ -31,6 +31,7 @@ function ProductPage() {
   const seller = sellers.find((item) => item.id === product.sellerId);
   const productMessages = messages.filter((item) => item.productId === product.id);
   const productReviews = reviews.filter((item) => item.productId === product.id);
+  const productTags = product.tags ?? [];
 
   return (
     <div className="product-page">
@@ -49,7 +50,7 @@ function ProductPage() {
             </article>
             <article>
               <span>Rating</span>
-              <strong>{product.rating} / 5</strong>
+              <strong>{product.rating ?? 4.7} / 5</strong>
             </article>
             <article>
               <span>Stock</span>
@@ -58,7 +59,7 @@ function ProductPage() {
           </div>
 
           <ul className="chip-row" aria-label={`${product.name} tags`}>
-            {product.tags.map((tag) => (
+            {productTags.map((tag) => (
               <li key={tag}>{tag}</li>
             ))}
           </ul>

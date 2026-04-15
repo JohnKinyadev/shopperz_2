@@ -1,6 +1,11 @@
 import { Link } from "react-router-dom";
+import { useMarketplace } from "../context/MarketplaceContext";
 
 function ProductCard({ product, isSaved, isCompared, onToggleCompare, onToggleSave }) {
+  const { currentUser, profile } = useMarketplace();
+  const shouldHideSellerName = !currentUser.isAuthenticated || profile.role === "Buyer";
+  const highlights = product.highlights ?? [];
+
   return (
     <article className="product-card">
       <div className="product-image-wrap" style={{ "--card-accent": product.accent }}>
@@ -13,14 +18,14 @@ function ProductCard({ product, isSaved, isCompared, onToggleCompare, onToggleSa
       <div className="product-copy">
         <div className="eyebrow-row">
           <span>{product.category}</span>
-          <span>{product.rating} / 5</span>
+          <span>{product.rating ?? "New"} / 5</span>
         </div>
 
         <h3>{product.name}</h3>
         <p>{product.description}</p>
 
         <ul className="chip-row" aria-label={`${product.name} highlights`}>
-          {product.highlights.map((item) => (
+          {highlights.map((item) => (
             <li key={item}>{item}</li>
           ))}
         </ul>
@@ -28,7 +33,7 @@ function ProductCard({ product, isSaved, isCompared, onToggleCompare, onToggleSa
         <div className="product-footer">
           <div>
             <strong>${product.price}</strong>
-            <span>{product.seller}</span>
+            <span>{shouldHideSellerName ? "Seller shown in product view" : product.seller}</span>
           </div>
 
           <div className="product-actions">

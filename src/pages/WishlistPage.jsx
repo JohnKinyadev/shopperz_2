@@ -2,8 +2,9 @@ import { Link } from "react-router-dom";
 import { useMarketplace } from "../context/MarketplaceContext";
 
 function WishlistPage() {
-  const { products, savedItems, toggleCompareItem, toggleSavedItem } = useMarketplace();
+  const { products, savedItems, toggleCompareItem, toggleSavedItem, currentUser, profile } = useMarketplace();
   const savedProducts = products.filter((product) => savedItems.includes(product.id));
+  const shouldHideSellerName = !currentUser.isAuthenticated || profile.role === "Buyer";
 
   if (!savedProducts.length) {
     return (
@@ -36,7 +37,7 @@ function WishlistPage() {
               <p>{product.description}</p>
               <div className="seller-meta">
                 <span>${product.price}</span>
-                <span>{product.seller}</span>
+                <span>{shouldHideSellerName ? "Seller shown in product view" : product.seller}</span>
               </div>
               <div className="inline-actions">
                 <Link to={`/products/${product.id}`} className="action-link">

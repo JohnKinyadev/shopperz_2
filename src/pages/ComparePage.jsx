@@ -23,11 +23,11 @@ function ComparePage() {
             <p>{product.description}</p>
             <div className="compare-metrics">
               <span>${product.price}</span>
-              <span>{product.rating} / 5</span>
+              <span>{product.rating ?? 4.7} / 5</span>
               <span>{product.stock} in stock</span>
             </div>
             <ul className="feature-list">
-              {product.highlights.map((item) => (
+              {(product.highlights ?? []).map((item) => (
                 <li key={item}>{item}</li>
               ))}
             </ul>
