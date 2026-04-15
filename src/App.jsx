@@ -11,6 +11,8 @@ const MessagesPage = lazy(() => import("./pages/MessagesPage"));
 const ComparePage = lazy(() => import("./pages/ComparePage"));
 const NotificationsPage = lazy(() => import("./pages/NotificationsPage"));
 const SellerPage = lazy(() => import("./pages/SellerPage"));
+const SellerRequestPage = lazy(() => import("./pages/SellerRequestPage"));
+const AdminPage = lazy(() => import("./pages/AdminPage"));
 const AuthPage = lazy(() => import("./pages/AuthPage"));
 
 function App() {
@@ -27,6 +29,8 @@ function App() {
             <Route path="/compare" element={<ComparePage />} />
             <Route path="/notifications" element={<NotificationsPage />} />
             <Route path="/sellers/:sellerId" element={<SellerPage />} />
+            <Route path="/seller-request" element={<SellerRequestPage />} />
+            <Route path="/admin" element={<AdminPage />} />
             <Route path="/auth" element={<AuthPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
