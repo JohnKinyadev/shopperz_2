@@ -1,8 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useMarketplace } from "../context/MarketplaceContext";
 
 function AuthPage() {
-  const { currentUser, setAuthMode, signIn, signUp } = useMarketplace();
+  const navigate = useNavigate();
+  const { currentUser, setAuthMode, signIn, signUp, authError } = useMarketplace();
   const [form, setForm] = useState({
     name: "Amina Wanjiku",
     email: "amina@example.com",
@@ -11,44 +13,50 @@ function AuthPage() {
 
   const mode = currentUser.mode;
 
+  // Redirect to home if already authenticated
+  useEffect(() => {
+    if (currentUser.isAuthenticated) {
+      navigate("/");
+    }
+  }, [currentUser.isAuthenticated, navigate]);
+
   function handleChange(event) {
     const { name, value } = event.target;
     setForm((current) => ({ ...current, [name]: value }));
   }
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault();
 
     if (mode === "signup") {
-      signUp(form);
+      await signUp(form);
       return;
     }
 
-    signIn(form);
+    await signIn(form);
   }
 
   return (
     <div className="auth-layout">
       <section className="panel auth-side-card">
         <p className="panel-kicker">Welcome back</p>
-        <h1>Mock auth flow for the frontend capstone.</h1>
+        <h1>Create account or login to access the website</h1>
         <p>
-          This page simulates sign-in and sign-up so the interface feels complete before any real
-          backend integration.
+          This page simulates sign-in and sign-up
         </p>
         <div className="seller-stat-grid">
           <article>
-            <strong>Frontend</strong>
-            <span>No backend required</span>
+            <strong>Having no Account</strong>
+            <span>Create account</span>
           </article>
           <article>
-            <strong>React</strong>
-            <span>Reusable auth UI</span>
+            <strong>Already have an account</strong>
+            <span>Login</span>
           </article>
-          <article>
+          {/* <article>
             <strong>Demo-ready</strong>
             <span>Local state persistence</span>
-          </article>
+          </article> */}
         </div>
       </section>
 
@@ -89,8 +97,10 @@ function AuthPage() {
           </label>
 
           <button type="submit" className="primary-button">
-            {mode === "signup" ? "Create frontend account" : "Sign in to demo"}
+            {mode === "signup" ? "Create account" : "Sign in to demo"}
           </button>
+
+          {authError && <p className="error-message">{authError}</p>}
         </form>
       </section>
     </div>
