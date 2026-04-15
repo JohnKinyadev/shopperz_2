@@ -6,7 +6,7 @@ import { categories } from "../data/mockData";
 import { useMarketplace } from "../context/MarketplaceContext";
 
 function HomePage() {
-  const { compareItems, products, savedItems, sellers, toggleCompareItem, toggleSavedItem } =
+  const { compareItems, products, savedItems, sellers, toggleCompareItem, toggleSavedItem, currentUser, profile } =
     useMarketplace();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
@@ -48,6 +48,17 @@ function HomePage() {
             <Link to="/compare" className="secondary-button link-button">
               Open compare
             </Link>
+            {currentUser.isAuthenticated ? (
+              profile.role === "Seller" ? (
+                <Link to={`/sellers/${profile.sellerId}`} className="ghost-button">
+                  My {profile.sellerName || "shop"}
+                </Link>
+              ) : (
+                <Link to="/seller-request" className="ghost-button">
+                  Become a seller
+                </Link>
+              )
+            ) : null}
           </div>
         </div>
       </section>
