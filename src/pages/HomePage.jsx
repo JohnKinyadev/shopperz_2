@@ -58,11 +58,10 @@ function HomePage() {
         </div>
 
         <div className="hero-copy">
-          <p className="hero-kicker">Frontend capstone</p>
-          <h1>Shop your shortlist with pink energy, quick seller chat, and guided AI help.</h1>
+          <p className="hero-kicker">Welcome to Shopperz Market</p>
+          <h1>Welcome To Your One Place Marketplace For Everything.</h1>
           <p>
-            This frontend demo now covers browsing, compare flows, seller storefronts, saved
-            products, notifications, and an AI assistant experience without needing backend setup.
+            Everything you need, all in one place. Discover unique products, connect with passionate sellers, and experience shopping like never before. Whether you're looking for the latest gadgets, handmade crafts, or vintage treasures, Shopperz Market has it all. Start exploring today and find something special that speaks to you.
           </p>
 
           <div className="hero-actions">
@@ -70,7 +69,7 @@ function HomePage() {
               View wishlist
             </Link>
             <Link to="/compare" className="secondary-button link-button">
-              Open compare
+              Compare products
             </Link>
             {currentUser.isAuthenticated ? (
               <Link to={sellerCtaLabel === "Pending" ? "/seller-request" : sellerShopPath} className="ghost-button">
@@ -111,8 +110,8 @@ function HomePage() {
       <section className="spotlight-grid">
         <article className="panel spotlight-card">
           <p className="panel-kicker">Smart shopping</p>
-          <h2>Built-in compare flow</h2>
-          <p>Shortlist up to three products and view their strengths side by side before messaging a seller.</p>
+          <h2>Compare Products To Your Preference</h2>
+          <p>Shortlist up to three products and view their specifications before making a decision</p>
           <Link to="/compare" className="text-link">
             Jump to comparison
           </Link>
@@ -120,7 +119,7 @@ function HomePage() {
 
         <article className="panel spotlight-card">
           <p className="panel-kicker">Live feel</p>
-          <h2>Seller-first experience</h2>
+          <h2>See The Listed Stores</h2>
           <p>Each seller has a dedicated storefront page, response-time badge, and conversation history.</p>
           <Link to={`/sellers/${trendingSellers[0].id}`} className="text-link">
             Explore a seller store
