@@ -44,6 +44,9 @@ function AuthPage() {
         <p>
           This page simulates sign-in and sign-up
         </p>
+        <p>
+          Demo admin login: <strong>admin@shopperz.local</strong> / <strong>Admin123!</strong>
+        </p>
         <div className="seller-stat-grid">
           <article>
             <strong>Having no Account</strong>
@@ -99,6 +102,22 @@ function AuthPage() {
           <button type="submit" className="primary-button">
             {mode === "signup" ? "Create account" : "Sign in to demo"}
           </button>
+
+          {mode === "signin" ? (
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={() =>
+                setForm((current) => ({
+                  ...current,
+                  email: "admin@shopperz.local",
+                  password: "Admin123!",
+                }))
+              }
+            >
+              Use admin login
+            </button>
+          ) : null}
 
           {authError && <p className="error-message">{authError}</p>}
         </form>

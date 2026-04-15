@@ -11,8 +11,47 @@ import { createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthState
 
 const STORAGE_KEY = "shopperz-state";
 const ADMIN_EMAILS = ["admin@shopperz.local", "admin@shopperz.dev"];
+const DEMO_ADMIN_CREDENTIALS = {
+  email: "admin@shopperz.local",
+  password: "Admin123!",
+  name: "Shopperz Admin",
+};
 
 const MarketplaceContext = createContext(null);
+
+function getLatestSellerRequestForEmail(requests, email) {
+  if (!email) return null;
+
+  return requests
+    .filter((request) => request.requesterEmail === email)
+    .sort((a, b) => new Date(b.submittedAt || 0) - new Date(a.submittedAt || 0))[0] ?? null;
+}
+
+function normalizeTagList(tagString = "") {
+  return tagString
+    .split(",")
+    .map((tag) => tag.trim())
+    .filter(Boolean);
+}
+
+function buildProductHighlights(productData, tags) {
+  const specHighlights = Object.values(productData.specs || {})
+    .map((value) => value?.trim?.() ?? "")
+    .filter(Boolean);
+  const fallbackHighlightsByCategory = {
+    Phones: ["Reliable performance", "All-day battery", "Ready to ship"],
+    Audio: ["Clear sound", "Comfortable fit", "Ready to ship"],
+    Wearables: ["Lightweight design", "Daily tracking", "Ready to ship"],
+    Gaming: ["Smooth gameplay", "Great value", "Ready to ship"],
+    "Home Office": ["Practical setup", "Space-saving", "Ready to ship"],
+  };
+
+  const highlights = [...tags, ...specHighlights].slice(0, 3);
+
+  return highlights.length > 0
+    ? highlights
+    : fallbackHighlightsByCategory[productData.category] || ["Featured product", "Ready to ship", "Limited stock"];
+}
 
 function loadStoredState() {
   try {
@@ -33,21 +72,38 @@ function buildDefaultProfile() {
   };
 }
 
+function buildAdminProfile(email = DEMO_ADMIN_CREDENTIALS.email, name = DEMO_ADMIN_CREDENTIALS.name) {
+  return {
+    name,
+    role: "Admin",
+    location: "Head office",
+    email,
+    preference: "Approve sellers and manage the marketplace",
+  };
+}
+
+function buildSignedOutUser(mode = "signin") {
+  return {
+    isAuthenticated: false,
+    mode,
+    user: null,
+    isAdmin: false,
+    sessionType: "guest",
+  };
+}
+
 export function MarketplaceProvider({ children }) {
   const storedState = loadStoredState();
-  const [savedItems, setSavedItems] = useState(storedState?.savedItems ?? ["p-1002", "p-1004"]);
-  const [compareItems, setCompareItems] = useState(storedState?.compareItems ?? ["p-1001", "p-1002"]);
+  const [savedItems, setSavedItems] = useState(storedState?.savedItems ?? []);
+  const [compareItems, setCompareItems] = useState(storedState?.compareItems ?? []);
   const [messages, setMessages] = useState(storedState?.messages ?? initialMessages);
   const [notifications, setNotifications] = useState(
     storedState?.notifications ?? initialNotifications,
   );
   const [profile, setProfile] = useState(storedState?.profile ?? buildDefaultProfile());
-  const [currentUser, setCurrentUser] = useState({
-    isAuthenticated: false,
-    mode: "signin",
-    user: null,
-    isAdmin: false,
-  });
+  const [currentUser, setCurrentUser] = useState(
+    storedState?.currentUser ?? buildSignedOutUser(),
+  );
   const [products, setProducts] = useState(storedState?.products ?? initialProducts);
   const [sellers, setSellers] = useState(storedState?.sellers ?? initialSellers);
   const [orders, setOrders] = useState(storedState?.orders ?? []);
@@ -59,12 +115,14 @@ export function MarketplaceProvider({ children }) {
 
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (!user) {
-        setCurrentUser({
-          isAuthenticated: false,
-          mode: "signin",
-          user: null,
-          isAdmin: false,
-        });
+        setCurrentUser((current) =>
+          current.sessionType === "local-admin" ? current : buildSignedOutUser(current.mode),
+        );
+        setProfile((current) =>
+          current.role === "Admin" || current.email !== buildDefaultProfile().email
+            ? buildDefaultProfile()
+            : current,
+        );
         return;
       }
 
@@ -74,16 +132,11 @@ export function MarketplaceProvider({ children }) {
         mode: "signin",
         user,
         isAdmin,
+        sessionType: "firebase",
       });
 
       if (isAdmin) {
-        setProfile({
-          name: user.displayName || "Shopperz Admin",
-          role: "Admin",
-          location: "Head office",
-          email: user.email,
-          preference: "Approve sellers and manage the marketplace",
-        });
+        setProfile(buildAdminProfile(user.email, user.displayName || DEMO_ADMIN_CREDENTIALS.name));
         return;
       }
 
@@ -116,6 +169,8 @@ export function MarketplaceProvider({ children }) {
         email: user.email,
         name: user.displayName || current.name,
       }));
+      setSavedItems([]);
+      setCompareItems([]);
     });
 
     return unsubscribe;
@@ -140,6 +195,10 @@ export function MarketplaceProvider({ children }) {
   }, [compareItems, currentUser, messages, notifications, profile, savedItems, products, sellers, orders, sellerRequests]);
 
   const unreadNotifications = notifications.filter((item) => !item.read).length;
+  const currentSellerRequest = getLatestSellerRequestForEmail(
+    sellerRequests,
+    currentUser.user?.email,
+  );
 
   const value = useMemo(
     () => ({
@@ -154,6 +213,7 @@ export function MarketplaceProvider({ children }) {
       compareItems,
       currentUser,
       authError,
+      currentSellerRequest,
       toggleSavedItem(productId) {
         setSavedItems((current) =>
           current.includes(productId)
@@ -219,13 +279,35 @@ export function MarketplaceProvider({ children }) {
         setProfile((current) => ({ ...current, ...updates }));
       },
       signIn: async (credentials) => {
+        const email = credentials.email.trim().toLowerCase();
+
+        if (
+          email === DEMO_ADMIN_CREDENTIALS.email
+          && credentials.password === DEMO_ADMIN_CREDENTIALS.password
+        ) {
+          setAuthError(null);
+          setCurrentUser({
+            isAuthenticated: true,
+            mode: "signin",
+            user: {
+              uid: "local-admin",
+              email: DEMO_ADMIN_CREDENTIALS.email,
+              displayName: DEMO_ADMIN_CREDENTIALS.name,
+            },
+            isAdmin: true,
+            sessionType: "local-admin",
+          });
+          setProfile(buildAdminProfile());
+          return;
+        }
+
         if (!firebaseReady || !auth) {
           setAuthError("Firebase not configured");
           return;
         }
         try {
           setAuthError(null);
-          await signInWithEmailAndPassword(auth, credentials.email, credentials.password);
+          await signInWithEmailAndPassword(auth, email, credentials.password);
         } catch (error) {
           setAuthError(error.message);
         }
@@ -238,6 +320,8 @@ export function MarketplaceProvider({ children }) {
         try {
           setAuthError(null);
           const userCredential = await createUserWithEmailAndPassword(auth, details.email, details.password);
+          setSavedItems([]);
+          setCompareItems([]);
           // Update profile with name
           setProfile({
             ...buildDefaultProfile(),
@@ -264,13 +348,19 @@ export function MarketplaceProvider({ children }) {
           return null;
         }
 
-        const existingRequest = sellerRequests.find(
-          (request) => request.requesterEmail === currentUser.user.email && request.status === "Pending",
+        const existingRequest = getLatestSellerRequestForEmail(
+          sellerRequests,
+          currentUser.user.email,
         );
 
-        if (existingRequest) {
+        if (existingRequest?.status === "Pending") {
           setAuthError("You already have a pending seller request.");
           return null;
+        }
+
+        if (existingRequest?.status === "Approved") {
+          setAuthError("Your seller request has already been approved.");
+          return existingRequest.id;
         }
 
         try {
@@ -355,6 +445,11 @@ export function MarketplaceProvider({ children }) {
           return null;
         }
 
+        const tags = Array.isArray(productData.tags)
+          ? productData.tags
+          : normalizeTagList(productData.tags);
+        const highlights = buildProductHighlights(productData, tags);
+
         const product = {
           ...productData,
           id: `p-${Date.now()}`,
@@ -364,8 +459,11 @@ export function MarketplaceProvider({ children }) {
           accent: "var(--tone-pink)",
           image: productData.image || "https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&w=900&q=80",
           price: Number(productData.price),
+          rating: Number(productData.rating) || 4.7,
           stock: Number(productData.stock),
-          tags: productData.tags.split(",").map((tag) => tag.trim()).filter(Boolean),
+          highlights,
+          tags,
+          aiTip: `A fresh ${productData.category.toLowerCase()} listing from ${profile.sellerName || profile.name} with ${highlights[0].toLowerCase()}.`,
           specs: productData.specs || {},
         };
 
@@ -381,9 +479,17 @@ export function MarketplaceProvider({ children }) {
       },
       orders,
       signOut: async () => {
+        if (currentUser.sessionType === "local-admin") {
+          setCurrentUser((current) => buildSignedOutUser(current.mode));
+          setProfile(buildDefaultProfile());
+          setAuthError(null);
+          return;
+        }
+
         if (!firebaseReady || !auth) return;
         try {
           await firebaseSignOut(auth);
+          setProfile(buildDefaultProfile());
         } catch (error) {
           console.error("Sign out error:", error);
         }
@@ -397,10 +503,15 @@ export function MarketplaceProvider({ children }) {
       currentUser,
       messages,
       notifications,
+      orders,
       profile,
+      products,
       savedItems,
+      sellerRequests,
+      sellers,
       unreadNotifications,
       authError,
+      currentSellerRequest,
     ],
   );
 
