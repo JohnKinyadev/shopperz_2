@@ -44,9 +44,9 @@ function AuthPage() {
         <p>
           This page simulates sign-in and sign-up
         </p>
-        <p>
+        {/* <p>
           Demo admin login: <strong>admin@shopperz.local</strong> / <strong>Admin123!</strong>
-        </p>
+        </p> */}
         <div className="seller-stat-grid">
           <article>
             <strong>Having no Account</strong>
@@ -100,7 +100,7 @@ function AuthPage() {
           </label>
 
           <button type="submit" className="primary-button">
-            {mode === "signup" ? "Create account" : "Sign in to demo"}
+            {mode === "signup" ? "Create account" : "Sign in"}
           </button>
 
           {mode === "signin" ? (
