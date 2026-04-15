@@ -1,5 +1,22 @@
 const endpoint = import.meta.env.VITE_AI_ENDPOINT;
 const authToken = import.meta.env.VITE_AI_AUTH_TOKEN;
+const stopWords = new Set([
+  "and",
+  "the",
+  "with",
+  "for",
+  "that",
+  "this",
+  "from",
+  "your",
+  "you",
+  "all",
+  "day",
+  "use",
+  "built",
+  "good",
+  "great",
+]);
 
 function buildAssistantInput(product, buyerProfile, prompt) {
   return [
@@ -103,6 +120,55 @@ function buildFallbackAnswer(product, buyerProfile) {
 
 export function hasLiveAiEndpoint() {
   return Boolean(endpoint);
+}
+
+function tokenizeText(text = "") {
+  return text
+    .toLowerCase()
+    .split(/[^a-z0-9]+/g)
+    .map((token) => token.trim())
+    .filter((token) => token.length > 2 && !stopWords.has(token));
+}
+
+function buildRecommendationReason(product, buyerProfile, matches) {
+  const readableMatches = matches.slice(0, 2).join(" and ");
+
+  if (readableMatches) {
+    return `${product.name} stands out because it aligns with your preference for ${readableMatches}.`;
+  }
+
+  const fallbackSignal = product.highlights?.[0] || product.tags?.[0] || product.category.toLowerCase();
+  return `${product.name} is a practical pick if you want ${buyerProfile.preference.toLowerCase()} and value ${fallbackSignal.toLowerCase()}.`;
+}
+
+export function getMarketplaceSuggestions(products, buyerProfile, limit = 3) {
+  const preferenceTokens = tokenizeText(buyerProfile.preference);
+
+  return products
+    .map((product) => {
+      const productSignals = [
+        product.name,
+        product.category,
+        product.description,
+        ...(product.tags || []),
+        ...(product.highlights || []),
+      ].join(" ").toLowerCase();
+
+      const matchedTokens = preferenceTokens.filter((token) => productSignals.includes(token));
+      const score =
+        matchedTokens.length * 3
+        + (product.rating || 0)
+        + Math.min((product.stock || 0) / 10, 2);
+
+      return {
+        product,
+        score,
+        matches: matchedTokens,
+        reason: buildRecommendationReason(product, buyerProfile, matchedTokens),
+      };
+    })
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit);
 }
 
 export async function getProductAdvice(product, buyerProfile, prompt) {
