@@ -1,10 +1,10 @@
+import { Link, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { useMarketplace } from "../context/MarketplaceContext";
 
 function SellerRequestPage() {
   const navigate = useNavigate();
-  const { becomeSeller, sellerRequests, currentUser, profile, authError } = useMarketplace();
+  const { becomeSeller, currentUser, profile, authError, currentSellerRequest } = useMarketplace();
   const [form, setForm] = useState({
     storeName: "",
     location: "",
@@ -22,10 +22,10 @@ function SellerRequestPage() {
 
   // Redirect to seller store if already a seller
   useEffect(() => {
-    if (currentUser.isAuthenticated && currentUser.role === "Seller") {
-      navigate(`/sellers/${currentUser.sellerId}`);
+    if (profile.role === "Seller" && profile.sellerId) {
+      navigate(`/sellers/${profile.sellerId}`);
     }
-  }, [currentUser, navigate]);
+  }, [navigate, profile.role, profile.sellerId]);
 
   function handleChange(event) {
     const { name, value } = event.target;
@@ -45,17 +45,15 @@ function SellerRequestPage() {
     }
   }
 
-  const existingRequest = sellerRequests.find(
-    (request) => request.requesterEmail === currentUser.user?.email,
-  );
-
-  const isRequestPending = existingRequest?.status === "Pending";
-  const isRequestApproved = existingRequest?.status === "Approved";
+  const isRequestPending = currentSellerRequest?.status === "Pending";
+  const isRequestApproved = currentSellerRequest?.status === "Approved";
+  const sellerShopPath = profile.sellerId
+    ? `/sellers/${profile.sellerId}`
+    : currentSellerRequest?.sellerId
+      ? `/sellers/${currentSellerRequest.sellerId}`
+      : "/dashboard";
 
   useEffect(() => {
-    if (profile.role === "Seller") {
-      navigate(`/sellers/${profile.sellerId}`);
-    }
     if (currentUser.isAdmin) {
       navigate("/admin");
     }
@@ -110,16 +108,22 @@ function SellerRequestPage() {
             <input name="coverImage" value={form.coverImage} onChange={handleChange} />
           </label>
 
-          <button type="submit" className="primary-button" disabled={isRequestPending || isRequestApproved}>
-            {isRequestPending ? "Request pending" : isRequestApproved ? "Approved" : "Become a seller"}
-          </button>
+          {isRequestApproved ? (
+            <Link to={sellerShopPath} className="primary-button link-button">
+              Manage my shop
+            </Link>
+          ) : (
+            <button type="submit" className="primary-button" disabled={isRequestPending}>
+              {isRequestPending ? "Pending" : "Apply to become a seller"}
+            </button>
+          )}
 
           {authError && <p className="error-message">{authError}</p>}
           {isRequestPending ? (
             <p className="error-message">Your seller request is pending approval from admin.</p>
           ) : null}
           {isRequestApproved ? (
-            <p className="error-message">Your seller request has been approved. Please refresh to access your seller store.</p>
+            <p className="error-message">Your seller request has been approved. You can now manage your shop.</p>
           ) : null}
         </form>
       </section>

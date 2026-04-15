@@ -2,10 +2,42 @@ import { Link } from "react-router-dom";
 import { useMarketplace } from "../context/MarketplaceContext";
 
 function DashboardPage() {
-  const { messages, notifications, products, profile, savedItems } = useMarketplace();
+  const {
+    messages,
+    notifications,
+    orders,
+    products,
+    profile,
+    savedItems,
+    currentSellerRequest,
+    compareItems,
+  } = useMarketplace();
   const savedProducts = products.filter((product) => savedItems.includes(product.id));
   const recentMessages = [...messages].slice(-4).reverse();
   const latestNotifications = notifications.slice(0, 3);
+  const updateCount = messages.length + notifications.length + orders.length;
+  const shouldHideSellerName = profile.role === "Buyer";
+  const sellerShopPath = profile.sellerId
+    ? `/sellers/${profile.sellerId}`
+    : currentSellerRequest?.sellerId
+      ? `/sellers/${currentSellerRequest.sellerId}`
+      : "/seller-request";
+  const sellerCardTitle =
+    profile.role === "Seller"
+      ? "My store"
+      : currentSellerRequest?.status === "Pending"
+        ? "Pending"
+        : currentSellerRequest?.status === "Approved"
+          ? "My store"
+          : "Apply";
+  const sellerCardText =
+    profile.role === "Seller"
+      ? "Manage my shop"
+      : currentSellerRequest?.status === "Pending"
+        ? "Seller request pending"
+        : currentSellerRequest?.status === "Approved"
+          ? "Manage my shop"
+          : "Apply to become a seller";
 
   return (
     <div className="dashboard-page">
@@ -31,23 +63,23 @@ function DashboardPage() {
               <span>Saved products</span>
             </Link>
             <Link to="/messages" className="mini-card">
-              <strong>{recentMessages.length}</strong>
-              <span>Recent messages</span>
+              <strong>{updateCount}</strong>
+              <span>Updates & conversations</span>
             </Link>
             <Link to="/notifications" className="mini-card">
               <strong>{latestNotifications.length}</strong>
               <span>New updates</span>
             </Link>
             <Link to="/compare" className="mini-card">
-              <strong>3</strong>
+              <strong>{compareItems.length}</strong>
               <span>Compare slots</span>
             </Link>
             <Link
-              to={profile.role === "Seller" && profile.sellerId ? `/sellers/${profile.sellerId}` : "/seller-request"}
+              to={currentSellerRequest?.status === "Pending" ? "/seller-request" : sellerShopPath}
               className="mini-card"
             >
-              <strong>{profile.role === "Seller" ? "My store" : "Apply"}</strong>
-              <span>{profile.role === "Seller" ? "Manage products" : "Become a seller"}</span>
+              <strong>{sellerCardTitle}</strong>
+              <span>{sellerCardText}</span>
             </Link>
           </div>
         </article>
@@ -68,7 +100,7 @@ function DashboardPage() {
                 <div>
                   <strong>{product.name}</strong>
                   <span>
-                    {product.category} • {product.seller}
+                    {product.category} - {shouldHideSellerName ? "Seller shown in product view" : product.seller}
                   </span>
                 </div>
                 <span>${product.price}</span>

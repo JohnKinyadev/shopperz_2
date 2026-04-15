@@ -6,14 +6,25 @@ import { categories } from "../data/mockData";
 import { useMarketplace } from "../context/MarketplaceContext";
 
 function HomePage() {
-  const { compareItems, products, savedItems, sellers, toggleCompareItem, toggleSavedItem, currentUser, profile } =
+  const {
+    compareItems,
+    products,
+    savedItems,
+    sellers,
+    toggleCompareItem,
+    toggleSavedItem,
+    currentUser,
+    profile,
+    currentSellerRequest,
+  } =
     useMarketplace();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
 
   const visibleProducts = useMemo(() => {
     return products.filter((product) => {
-      const matchesSearch = [product.name, product.description, product.seller, ...product.tags]
+      const matchesSearch = [product.name, product.description, product.seller, ...(product.tags ?? [])]
+        .filter(Boolean)
         .join(" ")
         .toLowerCase()
         .includes(searchTerm.toLowerCase());
@@ -25,6 +36,19 @@ function HomePage() {
   }, [products, searchTerm, selectedCategory]);
 
   const trendingSellers = sellers.slice(0, 3);
+  const sellerShopPath = profile.sellerId
+    ? `/sellers/${profile.sellerId}`
+    : currentSellerRequest?.sellerId
+      ? `/sellers/${currentSellerRequest.sellerId}`
+      : "/seller-request";
+  const sellerCtaLabel =
+    profile.role === "Seller"
+      ? "Manage my shop"
+      : currentSellerRequest?.status === "Pending"
+        ? "Pending"
+        : currentSellerRequest?.status === "Approved"
+          ? "Manage my shop"
+          : "Apply to become a seller";
 
   return (
     <div className="page-grid">
@@ -49,15 +73,9 @@ function HomePage() {
               Open compare
             </Link>
             {currentUser.isAuthenticated ? (
-              profile.role === "Seller" ? (
-                <Link to={`/sellers/${profile.sellerId}`} className="ghost-button">
-                  My {profile.sellerName || "shop"}
-                </Link>
-              ) : (
-                <Link to="/seller-request" className="ghost-button">
-                  Become a seller
-                </Link>
-              )
+              <Link to={sellerCtaLabel === "Pending" ? "/seller-request" : sellerShopPath} className="ghost-button">
+                {sellerCtaLabel}
+              </Link>
             ) : null}
           </div>
         </div>
