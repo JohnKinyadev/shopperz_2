@@ -1,5 +1,38 @@
 export const categories = ["Phones", "Audio", "Wearables", "Gaming", "Home Office"];
 
+export const categorySpecs = {
+  Phones: [
+    { field: "display", label: "Display size (inches)" },
+    { field: "processor", label: "Processor" },
+    { field: "ram", label: "RAM (GB)" },
+    { field: "storage", label: "Storage (GB)" },
+  ],
+  Audio: [
+    { field: "type", label: "Type (Earbuds/Headphones/Speaker)" },
+    { field: "connectivity", label: "Connectivity (Bluetooth/Wired)" },
+    { field: "batteryLife", label: "Battery life (hours)" },
+    { field: "noiseCancel", label: "Noise cancellation" },
+  ],
+  Wearables: [
+    { field: "type", label: "Type (Watch/Band/Ring)" },
+    { field: "waterResistance", label: "Water resistance (meters)" },
+    { field: "batteryDays", label: "Battery life (days)" },
+    { field: "compatibility", label: "Compatibility (iOS/Android/Both)" },
+  ],
+  Gaming: [
+    { field: "platform", label: "Platform (Console/PC/Mobile)" },
+    { field: "genre", label: "Genre" },
+    { field: "players", label: "Players (Single/Multiplayer)" },
+    { field: "releaseYear", label: "Release year" },
+  ],
+  "Home Office": [
+    { field: "material", label: "Material" },
+    { field: "dimensions", label: "Dimensions (LxWxH)" },
+    { field: "weight", label: "Weight (kg)" },
+    { field: "color", label: "Color" },
+  ],
+};
+
 export const sellers = [
   {
     id: "seller-techbridge",
