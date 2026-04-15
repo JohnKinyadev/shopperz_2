@@ -2,7 +2,7 @@ import { NavLink, Outlet } from "react-router-dom";
 import { useMarketplace } from "../context/MarketplaceContext";
 
 function Layout() {
-  const { currentUser, profile, signOut, unreadNotifications } = useMarketplace();
+  const { currentUser, profile, signOut, savedItems } = useMarketplace();
 
   return (
     <div className="app-shell">
@@ -38,12 +38,12 @@ function Layout() {
           </div>
 
           <NavLink to="/messages" className="header-link-block">
-            <small>Returns</small>
-            <span>& Messages</span>
+            <small>Track</small>
+            <span>& Updates</span>
           </NavLink>
 
           <NavLink to="/wishlist" className="header-link-block cart-link">
-            <strong>{unreadNotifications}</strong>
+            <strong>{savedItems.length}</strong>
             <span>Saved</span>
           </NavLink>
         </div>
@@ -53,7 +53,7 @@ function Layout() {
             <NavLink to="/">All Products</NavLink>
             <NavLink to="/wishlist">Wishlist</NavLink>
             <NavLink to="/compare">Compare</NavLink>
-            <NavLink to="/messages">Messages</NavLink>
+            <NavLink to="/messages">Updates</NavLink>
             <NavLink to="/dashboard">Dashboard</NavLink>
             <NavLink to="/notifications">Notifications</NavLink>
           </nav>
