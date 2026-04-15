@@ -481,6 +481,12 @@ img {
   color: var(--ink-soft);
 }
 
+.section-support {
+  max-width: 640px;
+  margin: 0;
+  color: var(--ink-soft);
+}
+
 .seller-stat-grid,
 .quick-link-grid {
   display: grid;
@@ -774,6 +780,74 @@ img {
   gap: 14px;
 }
 
+.updates-toolbar,
+.update-list,
+.update-copy,
+.ai-suggestion-copy {
+  display: grid;
+  gap: 14px;
+}
+
+.updates-toolbar {
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  align-items: center;
+}
+
+.filter-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.filter-chip {
+  border: 1px solid rgba(255, 116, 172, 0.14);
+  border-radius: 999px;
+  padding: 10px 16px;
+  background: rgba(255, 255, 255, 0.88);
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.filter-chip-active {
+  background: rgba(255, 143, 194, 0.16);
+  border-color: rgba(255, 116, 172, 0.24);
+}
+
+.update-card,
+.ai-suggestion-card {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 20px;
+  align-items: stretch;
+}
+
+.update-image {
+  width: 100%;
+  min-height: 220px;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 22px;
+}
+
+.ai-suggestion-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.ai-suggestion-card {
+  grid-template-columns: 1fr;
+}
+
+.suggestion-chip {
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(255, 143, 194, 0.12);
+  color: var(--ink);
+  font-size: 0.85rem;
+}
+
 .assistant-prompts {
   display: flex;
   flex-wrap: wrap;
@@ -979,7 +1053,14 @@ img {
 
   .wishlist-card,
   .thread-card,
-  .notification-card {
+  .notification-card,
+  .update-card,
+  .ai-suggestion-card,
+  .updates-toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .ai-suggestion-grid {
     grid-template-columns: 1fr;
   }
 
@@ -1043,6 +1124,10 @@ img {
   .seller-stat-grid,
   .auth-tabs {
     grid-template-columns: 1fr;
+  }
+
+  .filter-chip-row {
+    justify-content: flex-start;
   }
 
   .nav-links {
