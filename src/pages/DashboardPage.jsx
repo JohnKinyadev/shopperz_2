@@ -42,6 +42,13 @@ function DashboardPage() {
               <strong>3</strong>
               <span>Compare slots</span>
             </Link>
+            <Link
+              to={profile.role === "Seller" && profile.sellerId ? `/sellers/${profile.sellerId}` : "/seller-request"}
+              className="mini-card"
+            >
+              <strong>{profile.role === "Seller" ? "My store" : "Apply"}</strong>
+              <span>{profile.role === "Seller" ? "Manage products" : "Become a seller"}</span>
+            </Link>
           </div>
         </article>
       </section>
