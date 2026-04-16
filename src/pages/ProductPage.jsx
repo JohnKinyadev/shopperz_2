@@ -1,4 +1,4 @@
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import AIAssistantCard from "../components/AIAssistantCard";
 import ChatPanel from "../components/ChatPanel";
 import { useMarketplace } from "../context/MarketplaceContext";
@@ -6,6 +6,7 @@ import { formatCurrency, getProductSpecEntries } from "../lib/productUtils";
 
 function ProductPage() {
   const { productId } = useParams();
+  const navigate = useNavigate();
   const {
     compareItems,
     messages,
@@ -34,6 +35,13 @@ function ProductPage() {
   const productReviews = reviews.filter((item) => item.productId === product.id);
   const productTags = product.tags ?? [];
   const productSpecs = getProductSpecEntries(product.category, product.specs);
+
+  function handleSaveItem() {
+    const saved = toggleSavedItem(product.id);
+    if (saved === false) {
+      navigate("/auth");
+    }
+  }
 
   return (
     <div className="product-page">
@@ -80,7 +88,7 @@ function ProductPage() {
           ) : null}
 
           <div className="detail-actions">
-            <button className="primary-button" type="button" onClick={() => toggleSavedItem(product.id)}>
+            <button className="primary-button" type="button" onClick={handleSaveItem}>
               {savedItems.includes(product.id) ? "Remove from saved" : "Save item"}
             </button>
             <button className="secondary-button" type="button" onClick={() => toggleCompareItem(product.id)}>

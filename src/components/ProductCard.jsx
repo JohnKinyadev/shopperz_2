@@ -1,17 +1,25 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useMarketplace } from "../context/MarketplaceContext";
 import { formatCurrency } from "../lib/productUtils";
 
 function ProductCard({ product, isSaved, isCompared, onToggleCompare, onToggleSave }) {
   const { currentUser, profile } = useMarketplace();
+  const navigate = useNavigate();
   const shouldHideSellerName = !currentUser.isAuthenticated || profile.role === "Buyer";
   const highlights = product.highlights ?? [];
+
+  function handleSave() {
+    const saved = onToggleSave(product.id);
+    if (saved === false) {
+      navigate("/auth");
+    }
+  }
 
   return (
     <article className="product-card">
       <div className="product-image-wrap" style={{ "--card-accent": product.accent }}>
         <img src={product.image} alt={product.name} className="product-image" />
-        <button className="save-pill" type="button" onClick={() => onToggleSave(product.id)}>
+        <button className="save-pill" type="button" onClick={handleSave}>
           {isSaved ? "Saved" : "Save"}
         </button>
       </div>

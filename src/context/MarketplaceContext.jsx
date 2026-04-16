@@ -445,11 +445,18 @@ export function MarketplaceProvider({ children }) {
       authError,
       currentSellerRequest,
       toggleSavedItem(productId) {
+        if (!currentUser.isAuthenticated) {
+          setAuthError("Sign in to save items to your wishlist.");
+          return false;
+        }
+
+        setAuthError(null);
         setSavedItems((current) =>
           current.includes(productId)
             ? current.filter((id) => id !== productId)
             : [...current, productId],
         );
+        return true;
       },
       toggleCompareItem(productId) {
         setCompareItems((current) => {
@@ -547,34 +554,42 @@ export function MarketplaceProvider({ children }) {
       signIn: async (credentials) => {
         const email = credentials.email.trim().toLowerCase();
 
-        if (
-          email === DEMO_ADMIN_CREDENTIALS.email
-          && credentials.password === DEMO_ADMIN_CREDENTIALS.password
-        ) {
-          setAuthError(null);
-          setCurrentUser({
-            isAuthenticated: true,
-            mode: "signin",
-            user: {
-              uid: "local-admin",
-              email: DEMO_ADMIN_CREDENTIALS.email,
-              displayName: DEMO_ADMIN_CREDENTIALS.name,
-            },
-            isAdmin: true,
-            sessionType: "local-admin",
-          });
-          setProfile(buildAdminProfile());
-          return;
-        }
-
         if (!firebaseReady || !auth) {
+          if (
+            email === DEMO_ADMIN_CREDENTIALS.email
+            && credentials.password === DEMO_ADMIN_CREDENTIALS.password
+          ) {
+            setAuthError(null);
+            setCurrentUser({
+              isAuthenticated: true,
+              mode: "signin",
+              user: {
+                uid: "local-admin",
+                email: DEMO_ADMIN_CREDENTIALS.email,
+                displayName: DEMO_ADMIN_CREDENTIALS.name,
+              },
+              isAdmin: true,
+              sessionType: "local-admin",
+            });
+            setProfile(buildAdminProfile());
+            return;
+          }
+
           setAuthError("Firebase not configured");
           return;
         }
+
         try {
           setAuthError(null);
           await signInWithEmailAndPassword(auth, email, credentials.password);
         } catch (error) {
+          if (
+            email === DEMO_ADMIN_CREDENTIALS.email
+            && credentials.password === DEMO_ADMIN_CREDENTIALS.password
+          ) {
+            setAuthError("Create the admin user in Firebase Auth before using admin approvals with Firestore sync.");
+            return;
+          }
           setAuthError(formatAuthError(error));
         }
       },
