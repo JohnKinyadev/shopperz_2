@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { useMarketplace } from "../context/MarketplaceContext";
+import { formatCurrency } from "../lib/productUtils";
 
 function ProductCard({ product, isSaved, isCompared, onToggleCompare, onToggleSave }) {
   const { currentUser, profile } = useMarketplace();
@@ -32,7 +33,7 @@ function ProductCard({ product, isSaved, isCompared, onToggleCompare, onToggleSa
 
         <div className="product-footer">
           <div>
-            <strong>${product.price}</strong>
+            <strong>{formatCurrency(product.price)}</strong>
             <span>{shouldHideSellerName ? "Seller shown in product view" : product.seller}</span>
           </div>
 

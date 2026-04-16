@@ -2,6 +2,7 @@ import { Link, useParams } from "react-router-dom";
 import AIAssistantCard from "../components/AIAssistantCard";
 import ChatPanel from "../components/ChatPanel";
 import { useMarketplace } from "../context/MarketplaceContext";
+import { formatCurrency, getProductSpecEntries } from "../lib/productUtils";
 
 function ProductPage() {
   const { productId } = useParams();
@@ -32,6 +33,7 @@ function ProductPage() {
   const productMessages = messages.filter((item) => item.productId === product.id);
   const productReviews = reviews.filter((item) => item.productId === product.id);
   const productTags = product.tags ?? [];
+  const productSpecs = getProductSpecEntries(product.category, product.specs);
 
   return (
     <div className="product-page">
@@ -46,7 +48,7 @@ function ProductPage() {
           <div className="detail-meta">
             <article>
               <span>Price</span>
-              <strong>${product.price}</strong>
+              <strong>{formatCurrency(product.price)}</strong>
             </article>
             <article>
               <span>Rating</span>
@@ -63,6 +65,19 @@ function ProductPage() {
               <li key={tag}>{tag}</li>
             ))}
           </ul>
+
+          {productSpecs.length > 0 ? (
+            <div>
+              <p className="panel-kicker">Category features</p>
+              <ul className="feature-list" aria-label={`${product.name} specifications`}>
+                {productSpecs.map((spec) => (
+                  <li key={spec.field}>
+                    {spec.label}: {spec.value}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
 
           <div className="detail-actions">
             <button className="primary-button" type="button" onClick={() => toggleSavedItem(product.id)}>

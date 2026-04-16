@@ -2,7 +2,19 @@ import { Link, useParams } from "react-router-dom";
 import { useState } from "react";
 import ProductCard from "../components/ProductCard";
 import { useMarketplace } from "../context/MarketplaceContext";
-import { categories, categorySpecs } from "../data/mockData";
+import { categories } from "../data/mockData";
+import { formatPriceInput, getCategorySpecDefinitions, sanitizePriceInput } from "../lib/productUtils";
+
+const defaultProductForm = {
+  name: "",
+  category: "Phones",
+  price: "",
+  stock: "",
+  description: "",
+  image: "",
+  tags: "",
+  specs: {},
+};
 
 function SellerPage() {
   const { sellerId } = useParams();
@@ -19,16 +31,7 @@ function SellerPage() {
     updateOrderStatus,
   } = useMarketplace();
   const seller = sellers.find((item) => item.id === sellerId);
-  const [newProduct, setNewProduct] = useState({
-    name: "",
-    category: "Phones",
-    price: "",
-    stock: "",
-    description: "",
-    image: "",
-    tags: "",
-    specs: {},
-  });
+  const [newProduct, setNewProduct] = useState(defaultProductForm);
 
   if (!seller) {
     return (
@@ -50,6 +53,14 @@ function SellerPage() {
         ...current,
         specs: { ...current.specs, [specField]: value },
       }));
+    } else if (name === "category") {
+      setNewProduct((current) => ({
+        ...current,
+        category: value,
+        specs: {},
+      }));
+    } else if (name === "price") {
+      setNewProduct((current) => ({ ...current, price: sanitizePriceInput(value) }));
     } else {
       setNewProduct((current) => ({ ...current, [name]: value }));
     }
@@ -57,11 +68,13 @@ function SellerPage() {
 
   function handleProductSubmit(event) {
     event.preventDefault();
-    addProduct(newProduct);
-    setNewProduct({ name: "", category: "Phones", price: "", stock: "", description: "", image: "", tags: "", specs: {} });
+    const productId = addProduct(newProduct);
+    if (productId) {
+      setNewProduct(defaultProductForm);
+    }
   }
 
-  const currentCategorySpecs = categorySpecs[newProduct.category] || [];
+  const currentCategorySpecs = getCategorySpecDefinitions(newProduct.category);
 
   const sellerOrders = orders.filter((order) => order.sellerId === seller.id);
 
@@ -122,7 +135,15 @@ function SellerPage() {
 
             <label>
               <span>Price</span>
-              <input name="price" type="number" value={newProduct.price} onChange={handleProductChange} required />
+              <input
+                name="price"
+                type="text"
+                inputMode="decimal"
+                value={formatPriceInput(newProduct.price)}
+                onChange={handleProductChange}
+                placeholder="1,200"
+                required
+              />
             </label>
 
             <label>
@@ -152,6 +173,7 @@ function SellerPage() {
                       name={`spec_${spec.field}`}
                       value={newProduct.specs[spec.field] || ""}
                       onChange={handleProductChange}
+                      placeholder={spec.placeholder}
                     />
                   </label>
                 ))}

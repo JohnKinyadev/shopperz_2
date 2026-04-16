@@ -1,3 +1,5 @@
+import { formatCurrency } from "./productUtils";
+
 const endpoint = import.meta.env.VITE_AI_ENDPOINT;
 const authToken = import.meta.env.VITE_AI_AUTH_TOKEN;
 const stopWords = new Set([
@@ -26,7 +28,7 @@ function buildAssistantInput(product, buyerProfile, prompt) {
     `Buyer profile: ${buyerProfile.name}, ${buyerProfile.preference}.`,
     `Product: ${product.name}.`,
     `Category: ${product.category}.`,
-    `Price: $${product.price}.`,
+    `Price: ${formatCurrency(product.price)}.`,
     `Highlights: ${product.highlights.join(", ")}.`,
     `Description: ${product.description}`,
     "",

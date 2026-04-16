@@ -2,34 +2,34 @@ export const categories = ["Phones", "Audio", "Wearables", "Gaming", "Home Offic
 
 export const categorySpecs = {
   Phones: [
-    { field: "display", label: "Display size (inches)" },
-    { field: "processor", label: "Processor" },
-    { field: "ram", label: "RAM (GB)" },
-    { field: "storage", label: "Storage (GB)" },
+    { field: "display", label: "Display size", highlightLabel: "Display", placeholder: "6.7-inch AMOLED" },
+    { field: "processor", label: "Processor", highlightLabel: "Chip", placeholder: "Snapdragon 8 Gen 2" },
+    { field: "ram", label: "RAM", highlightLabel: "RAM", placeholder: "12GB" },
+    { field: "storage", label: "Storage", highlightLabel: "Storage", placeholder: "256GB" },
   ],
   Audio: [
-    { field: "type", label: "Type (Earbuds/Headphones/Speaker)" },
-    { field: "connectivity", label: "Connectivity (Bluetooth/Wired)" },
-    { field: "batteryLife", label: "Battery life (hours)" },
-    { field: "noiseCancel", label: "Noise cancellation" },
+    { field: "type", label: "Audio type", highlightLabel: "Type", placeholder: "Wireless earbuds" },
+    { field: "connectivity", label: "Connectivity", highlightLabel: "Connection", placeholder: "Bluetooth 5.3" },
+    { field: "batteryLife", label: "Battery life", highlightLabel: "Battery", placeholder: "8 hours" },
+    { field: "noiseCancel", label: "Noise cancellation", highlightLabel: "ANC", placeholder: "Hybrid ANC" },
   ],
   Wearables: [
-    { field: "type", label: "Type (Watch/Band/Ring)" },
-    { field: "waterResistance", label: "Water resistance (meters)" },
-    { field: "batteryDays", label: "Battery life (days)" },
-    { field: "compatibility", label: "Compatibility (iOS/Android/Both)" },
+    { field: "type", label: "Wearable type", highlightLabel: "Type", placeholder: "Fitness watch" },
+    { field: "waterResistance", label: "Water resistance", highlightLabel: "Water resistance", placeholder: "50 meters" },
+    { field: "batteryDays", label: "Battery life", highlightLabel: "Battery", placeholder: "7 days" },
+    { field: "compatibility", label: "Compatibility", highlightLabel: "Works with", placeholder: "iOS and Android" },
   ],
   Gaming: [
-    { field: "platform", label: "Platform (Console/PC/Mobile)" },
-    { field: "genre", label: "Genre" },
-    { field: "players", label: "Players (Single/Multiplayer)" },
-    { field: "releaseYear", label: "Release year" },
+    { field: "platform", label: "Platform", highlightLabel: "Platform", placeholder: "PC" },
+    { field: "genre", label: "Genre", highlightLabel: "Genre", placeholder: "Action RPG" },
+    { field: "players", label: "Players", highlightLabel: "Mode", placeholder: "Single-player" },
+    { field: "releaseYear", label: "Release year", highlightLabel: "Released", placeholder: "2025" },
   ],
   "Home Office": [
-    { field: "material", label: "Material" },
-    { field: "dimensions", label: "Dimensions (LxWxH)" },
-    { field: "weight", label: "Weight (kg)" },
-    { field: "color", label: "Color" },
+    { field: "material", label: "Material", highlightLabel: "Material", placeholder: "Steel and engineered wood" },
+    { field: "dimensions", label: "Dimensions", highlightLabel: "Size", placeholder: "120 x 60 x 75 cm" },
+    { field: "weight", label: "Weight", highlightLabel: "Weight", placeholder: "18kg" },
+    { field: "color", label: "Color", highlightLabel: "Finish", placeholder: "Matte white" },
   ],
 };
 
@@ -102,6 +102,12 @@ export const products = [
       "A premium everyday smartphone with a sharp display, balanced cameras, and reliable battery life.",
     highlights: ["120Hz AMOLED", "5G ready", "5000mAh battery"],
     tags: ["Photography", "Battery", "Performance"],
+    specs: {
+      display: "6.7-inch AMOLED",
+      processor: "Tensor G4",
+      ram: "12GB",
+      storage: "256GB",
+    },
     aiTip:
       "Great if you want flagship feel without paying ultra-premium pricing. Best match for buyers who value battery and camera balance.",
   },
@@ -122,6 +128,12 @@ export const products = [
       "Noise-cancelling earbuds made for commuting, study sessions, and all-day comfort.",
     highlights: ["ANC", "8-hour playback", "Dual-device pairing"],
     tags: ["Travel", "Comfort", "Calls"],
+    specs: {
+      type: "Wireless earbuds",
+      connectivity: "Bluetooth 5.3",
+      batteryLife: "8 hours",
+      noiseCancel: "Hybrid ANC",
+    },
     aiTip:
       "Strong pick for buyers who need portable audio with good call quality and minimal setup friction.",
   },
@@ -142,6 +154,12 @@ export const products = [
       "A lightweight fitness watch designed for step tracking, sleep data, and casual style.",
     highlights: ["7-day battery", "Heart rate tracking", "Water resistant"],
     tags: ["Fitness", "Lifestyle", "Value"],
+    specs: {
+      type: "Fitness watch",
+      waterResistance: "50 meters",
+      batteryDays: "7 days",
+      compatibility: "iOS and Android",
+    },
     aiTip:
       "Best for casual fitness tracking. A good match if you want wellness features without smartwatch complexity.",
   },
@@ -162,6 +180,12 @@ export const products = [
       "A compact standing desk converter for small spaces and flexible work setups.",
     highlights: ["Small-footprint design", "Height adjustable", "Cable tray"],
     tags: ["Workspace", "Ergonomics", "Compact"],
+    specs: {
+      material: "Steel frame",
+      dimensions: "80 x 58 x 12 cm",
+      weight: "14kg",
+      color: "Walnut brown",
+    },
     aiTip:
       "Ideal if you need better posture in a small room. Strong option for students and apartment workspaces.",
   },

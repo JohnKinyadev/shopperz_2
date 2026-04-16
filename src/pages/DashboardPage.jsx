@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { useMarketplace } from "../context/MarketplaceContext";
+import { formatCurrency } from "../lib/productUtils";
 
 function DashboardPage() {
   const {
@@ -103,7 +104,7 @@ function DashboardPage() {
                     {product.category} - {shouldHideSellerName ? "Seller shown in product view" : product.seller}
                   </span>
                 </div>
-                <span>${product.price}</span>
+                <span>{formatCurrency(product.price)}</span>
               </article>
             ))}
           </div>

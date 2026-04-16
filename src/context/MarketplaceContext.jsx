@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import {
+  categorySpecs,
   messages as initialMessages,
   notifications as initialNotifications,
   products as initialProducts,
@@ -8,6 +9,7 @@ import {
 } from "../data/mockData";
 import { auth, firebaseReady } from "../lib/firebase";
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut as firebaseSignOut } from "firebase/auth";
+import { buildSpecHighlights, parsePriceInput } from "../lib/productUtils";
 
 const STORAGE_KEY = "shopperz-state";
 const ADMIN_EMAILS = ["admin@shopperz.local", "admin@shopperz.dev"];
@@ -35,9 +37,7 @@ function normalizeTagList(tagString = "") {
 }
 
 function buildProductHighlights(productData, tags) {
-  const specHighlights = Object.values(productData.specs || {})
-    .map((value) => value?.trim?.() ?? "")
-    .filter(Boolean);
+  const specHighlights = buildSpecHighlights(productData.category, productData.specs);
   const fallbackHighlightsByCategory = {
     Phones: ["Reliable performance", "All-day battery", "Ready to ship"],
     Audio: ["Clear sound", "Comfortable fit", "Ready to ship"],
@@ -46,7 +46,7 @@ function buildProductHighlights(productData, tags) {
     "Home Office": ["Practical setup", "Space-saving", "Ready to ship"],
   };
 
-  const highlights = [...tags, ...specHighlights].slice(0, 3);
+  const highlights = [...specHighlights, ...tags].slice(0, 3);
 
   return highlights.length > 0
     ? highlights
@@ -489,10 +489,24 @@ export function MarketplaceProvider({ children }) {
           return null;
         }
 
+        const price = parsePriceInput(productData.price);
+
+        if (Number.isNaN(price)) {
+          setAuthError("Enter a valid price before posting the product.");
+          return null;
+        }
+
         const tags = Array.isArray(productData.tags)
           ? productData.tags
           : normalizeTagList(productData.tags);
         const highlights = buildProductHighlights(productData, tags);
+        const normalizedSpecs = (categorySpecs[productData.category] || []).reduce((collection, definition) => {
+          const nextValue = productData.specs?.[definition.field]?.trim?.() ?? "";
+          if (nextValue) {
+            collection[definition.field] = nextValue;
+          }
+          return collection;
+        }, {});
 
         const product = {
           ...productData,
@@ -502,15 +516,16 @@ export function MarketplaceProvider({ children }) {
           sellerResponseTime: profile.responseTime || "Usually replies in 10 min",
           accent: "var(--tone-pink)",
           image: productData.image || "https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&w=900&q=80",
-          price: Number(productData.price),
+          price,
           rating: Number(productData.rating) || 4.7,
           stock: Number(productData.stock),
           highlights,
           tags,
           aiTip: `A fresh ${productData.category.toLowerCase()} listing from ${profile.sellerName || profile.name} with ${highlights[0].toLowerCase()}.`,
-          specs: productData.specs || {},
+          specs: normalizedSpecs,
         };
 
+        setAuthError(null);
         setProducts((current) => [...current, product]);
         return product.id;
       },

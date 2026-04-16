@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { useMarketplace } from "../context/MarketplaceContext";
+import { formatCurrency } from "../lib/productUtils";
 
 function WishlistPage() {
   const { products, savedItems, toggleCompareItem, toggleSavedItem, currentUser, profile } = useMarketplace();
@@ -36,7 +37,7 @@ function WishlistPage() {
               <h2>{product.name}</h2>
               <p>{product.description}</p>
               <div className="seller-meta">
-                <span>${product.price}</span>
+                <span>{formatCurrency(product.price)}</span>
                 <span>{shouldHideSellerName ? "Seller shown in product view" : product.seller}</span>
               </div>
               <div className="inline-actions">

@@ -47,7 +47,13 @@ function HomePage() {
 
   const visibleProducts = useMemo(() => {
     return products.filter((product) => {
-      const matchesSearch = [product.name, product.description, product.seller, ...(product.tags ?? [])]
+      const matchesSearch = [
+        product.name,
+        product.description,
+        product.seller,
+        ...(product.tags ?? []),
+        ...Object.values(product.specs ?? {}),
+      ]
         .filter(Boolean)
         .join(" ")
         .toLowerCase()
