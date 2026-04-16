@@ -270,15 +270,17 @@ export function MarketplaceProvider({ children }) {
     let unsubscribers = [];
 
     async function connectFirestoreCollections() {
-      try {
-        await Promise.all([
-          seedCollectionIfEmpty(FIRESTORE_COLLECTIONS.products, seedData.products),
-          seedCollectionIfEmpty(FIRESTORE_COLLECTIONS.sellers, seedData.sellers),
-          seedCollectionIfEmpty(FIRESTORE_COLLECTIONS.messages, seedData.messages),
-          seedCollectionIfEmpty(FIRESTORE_COLLECTIONS.notifications, seedData.notifications),
-        ]);
-      } catch (error) {
-        console.error("Failed to seed Firestore collections:", error);
+      if (currentUser.isAuthenticated) {
+        try {
+          await Promise.all([
+            seedCollectionIfEmpty(FIRESTORE_COLLECTIONS.products, seedData.products),
+            seedCollectionIfEmpty(FIRESTORE_COLLECTIONS.sellers, seedData.sellers),
+            seedCollectionIfEmpty(FIRESTORE_COLLECTIONS.messages, seedData.messages),
+            seedCollectionIfEmpty(FIRESTORE_COLLECTIONS.notifications, seedData.notifications),
+          ]);
+        } catch (error) {
+          console.error("Failed to seed Firestore collections:", error);
+        }
       }
 
       if (!isMounted) {
@@ -313,7 +315,7 @@ export function MarketplaceProvider({ children }) {
       isMounted = false;
       unsubscribers.forEach((unsubscribe) => unsubscribe?.());
     };
-  }, [seedData]);
+  }, [seedData, currentUser.isAuthenticated]);
 
   useEffect(() => {
     if (!firebaseReady || !auth) return;
