@@ -1,62 +1,110 @@
 # Shopperz
 
-Shopperz is a React + Vite marketplace prototype focused on product discovery, buyer-seller interaction, seller onboarding, and AI-assisted shopping guidance. It is designed for demos and capstone presentations, so the main flows work with local state and seeded data while still supporting optional Firebase authentication and an optional live AI endpoint.
+Shopperz is a React + Vite multi-role marketplace prototype built for demos, capstone showcases, and frontend ecommerce workflows. It combines buyer product discovery, seller storefront management, admin approval flows, Firebase-backed authentication and data sync, and an AI shopping assistant.
 
 ## What The System Does
 
 Shopperz supports three main roles:
 
-- Buyers can browse products, filter by category, save items, compare up to three products, chat about products, and get AI buying guidance.
-- Sellers can apply for storefront access, manage a store page, and post products with category-specific features.
+- Buyers can browse products as guests, then sign in to place orders, save items, compare products, chat about listings, and track order progress.
+- Sellers can request approval, manage a storefront, create and update listings, and move customer orders through the dispatch lifecycle.
 - Admins can review seller applications and approve or reject access to the marketplace.
 
-## Key Features
+## Core Features
 
 - Product browsing with search and category filtering
+- Guest browsing with account-gated actions like buying and wishlist saving
 - Featured listings with category-aware product highlights
-- Product detail pages with reviews, seller context, messaging, and AI assistance
-- Wishlist and comparison flows for buyer shortlisting
-- Buyer message threads and notification updates
-- Dashboard for quick access to saved items, updates, and seller actions
-- Sign up and sign in flow with Firebase Auth support
-- Demo admin login for marketplace moderation
+- Product detail pages with reviews, seller context, buyer chat, and AI assistance
+- Wishlist and side-by-side comparison flows
 - Seller onboarding request flow with admin approval
-- Seller storefront pages with posting tools and order-status controls
-- Category-specific product input fields for `Phones`, `Audio`, `Wearables`, `Gaming`, and `Home Office`
-- Posted product specs reused across featured listings, product pages, and comparison views
-- Price input that accepts large values with comma formatting such as `1,200` or `12,500`
-- Local persistence with `localStorage` for products, messages, notifications, seller requests, and user state
+- Seller storefront pages with product CRUD tools
+- Buyer purchase flow with quantity, location, pickup area, payment method, and delivery notes
+- Buyer order tracking with live seller-driven status progression
+- Seller order management across `Pending`, `Accepted`, `Preparing`, `Dispatched`, `Delivered`, and `Completed`
+- Automatic stock reservation on order placement and stock deduction at seller acceptance
+- Firebase Firestore sync for products, seller requests, orders, messages, notifications, and sellers
+- Dashboard, updates, and notification views scoped to the signed-in user
 
-## Category-Specific Listing Inputs
+## Category-Specific Product Inputs
 
-When a seller posts a product, the form changes based on the selected category so the seller only fills in relevant features.
+When a seller posts or edits a product, the form changes based on the chosen category so the seller only enters relevant attributes. Those attributes are then reused in featured listings, product pages, and comparison views.
 
-Examples:
+Supported categories:
+
+- `Phones`
+- `Laptops`
+- `Audio`
+- `Wearables`
+- `Gaming`
+- `Home Office`
+- `Clothes`
+- `Handbags`
+- `Shoes`
+- `Appliances`
+
+Examples of category-specific fields:
 
 - `Phones`: display, processor, RAM, storage
-- `Audio`: type, connectivity, battery life, noise cancellation
-- `Wearables`: type, water resistance, battery life, compatibility
-- `Gaming`: platform, genre, players, release year
-- `Home Office`: material, dimensions, weight, color
+- `Laptops`: screen size, processor, RAM, storage
+- `Clothes`: clothing type, size, material, color
+- `Handbags`: material, dimensions, compartments, strap type
+- `Appliances`: power rating, capacity, dimensions, warranty
 
-Those inputs are reused as listing highlights so featured cards and compare views show category-relevant information instead of only generic tags.
+## Order And Tracking Flow
+
+The purchase and fulfilment flow is designed around seller updates and buyer visibility.
+
+1. A buyer places an order from the product page.
+2. The system creates a `Pending` order and reserves stock.
+3. The seller accepts the order and starts dispatch.
+4. The seller continues updating the order through `Preparing`, `Dispatched`, `Delivered`, and `Completed`.
+5. The buyer sees those status changes in their order views and updates page.
+6. Firestore stores the latest order status so both the seller side and buyer side stay aligned.
+
+Buyers can cancel an order only before it reaches `Dispatched`.
+
+## Data And Persistence
+
+The app uses a hybrid demo-friendly persistence model:
+
+- Firebase Auth handles sign up and sign in
+- Firestore stores marketplace data such as products, orders, seller requests, messages, notifications, and sellers
+- `localStorage` preserves local UI state and fallback demo continuity
+
+This makes the project presentation-friendly while still supporting a realistic backend sync path.
 
 ## Tech Stack
 
 - React 19
 - Vite
 - React Router
-- Firebase SDK
+- Firebase Auth
+- Firebase Firestore
 - Browser `localStorage`
 
-## Project Behavior
+## Authentication And Roles
 
-This project is frontend-first, but it includes optional integration points:
+- Standard users can create an account or sign in
+- Guests can browse products without signing in
+- Buying, saving to wishlist, and seller application actions require an account
+- Approved seller requests upgrade a buyer into a seller profile
+- Admin access is available through the auth flow
+- Demo admin credentials:
+  `admin@shopperz.local` / `Admin123!`
 
-- Buyer, seller, admin, product, review, and message flows are demo-ready with local state
-- Firebase Auth can be enabled through environment variables
-- The AI assistant can run in demo fallback mode or call a live endpoint
-- Seller approval is handled inside the app through the admin page
+## AI Assistant
+
+The AI assistant on the product page uses:
+
+- buyer profile information
+- product details and highlights
+- the active user prompt
+
+It runs in two modes:
+
+- Demo fallback mode when no endpoint is configured
+- Live API mode when `VITE_AI_ENDPOINT` is provided
 
 ## Getting Started
 
@@ -93,37 +141,16 @@ VITE_AI_ENDPOINT=
 VITE_AI_AUTH_TOKEN=
 ```
 
-## Authentication And Roles
-
-- Standard users can create an account or sign in
-- Approved seller requests upgrade a buyer into a seller profile
-- Admin access is available through the demo login shortcut on the auth page
-- Demo admin credentials:
-  `admin@shopperz.local` / `Admin123!`
-
-## AI Assistant
-
-The AI assistant on the product page uses:
-
-- buyer profile information
-- product details and highlights
-- the active user prompt
-
-It runs in two modes:
-
-- Demo fallback mode when no endpoint is configured
-- Live API mode when `VITE_AI_ENDPOINT` is provided
-
 ## Main Routes
 
 - `/` - Home page with featured listings and seller highlights
-- `/products/:productId` - Product details, AI assistant, reviews, and chat
+- `/products/:productId` - Product details, AI assistant, reviews, chat, and ordering
 - `/wishlist` - Saved products
 - `/compare` - Side-by-side comparison
-- `/messages` - Product conversation threads and AI suggestions
+- `/messages` - User-scoped order tracking, product conversation updates, and AI suggestions
 - `/notifications` - Recent system and marketplace updates
 - `/dashboard` - Buyer or seller dashboard
-- `/sellers/:sellerId` - Seller storefront and seller product management
+- `/sellers/:sellerId` - Seller storefront, product management, and seller order controls
 - `/seller-request` - Seller application flow
 - `/admin` - Seller approval dashboard
 - `/auth` - Sign in and sign up
@@ -132,4 +159,4 @@ It runs in two modes:
 
 - `dist/` is generated output and should not be edited manually
 - `.env.local` should not be committed
-- App state is persisted locally, so refreshing the browser keeps most demo actions
+- Firestore rules must allow the intended reads and writes for your environment
