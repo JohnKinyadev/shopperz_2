@@ -66,6 +66,7 @@ function HomePage() {
   }, [products, searchTerm, selectedCategory]);
 
   const trendingSellers = sellers.slice(0, 3);
+  const featuredSeller = trendingSellers[0] ?? null;
   const sellerShopPath = profile.sellerId
     ? `/sellers/${profile.sellerId}`
     : currentSellerRequest?.sellerId
@@ -151,9 +152,13 @@ function HomePage() {
           <p className="panel-kicker">Live feel</p>
           <h2>See The Listed Stores</h2>
           <p>Each seller has a dedicated storefront page, response-time badge, and conversation history.</p>
-          <Link to={`/sellers/${trendingSellers[0].id}`} className="text-link">
-            Explore a seller store
-          </Link>
+          {featuredSeller ? (
+            <Link to={`/sellers/${featuredSeller.id}`} className="text-link">
+              Explore a seller store
+            </Link>
+          ) : (
+            <span className="text-link">Seller stores will appear once Firestore has data</span>
+          )}
         </article>
       </section>
 
@@ -166,16 +171,23 @@ function HomePage() {
       </section>
 
       <section className="product-grid">
-        {visibleProducts.map((product) => (
-          <ProductCard
-            key={product.id}
-            product={product}
-            isCompared={compareItems.includes(product.id)}
-            isSaved={savedItems.includes(product.id)}
-            onToggleCompare={toggleCompareItem}
-            onToggleSave={toggleSavedItem}
-          />
-        ))}
+        {visibleProducts.length > 0 ? (
+          visibleProducts.map((product) => (
+            <ProductCard
+              key={product.id}
+              product={product}
+              isCompared={compareItems.includes(product.id)}
+              isSaved={savedItems.includes(product.id)}
+              onToggleCompare={toggleCompareItem}
+              onToggleSave={toggleSavedItem}
+            />
+          ))
+        ) : (
+          <section className="empty-state panel">
+            <h2>No products available yet</h2>
+            <p>Once Firestore has product documents, featured listings will appear here.</p>
+          </section>
+        )}
       </section>
 
       <section className="section-heading">
@@ -186,20 +198,28 @@ function HomePage() {
       </section>
 
       <section className="seller-strip">
-        {trendingSellers.map((seller) => (
-          <article key={seller.id} className="panel seller-teaser">
-            <p className="panel-kicker">{seller.location}</p>
-            <h3>{seller.name}</h3>
-            <p>{seller.tagline}</p>
-            <div className="seller-meta">
-              <span>{seller.rating} / 5 rating</span>
-              <span>{seller.responseTime}</span>
-            </div>
-            <Link to={`/sellers/${seller.id}`} className="text-link">
-              Visit store
-            </Link>
+        {trendingSellers.length > 0 ? (
+          trendingSellers.map((seller) => (
+            <article key={seller.id} className="panel seller-teaser">
+              <p className="panel-kicker">{seller.location}</p>
+              <h3>{seller.name}</h3>
+              <p>{seller.tagline}</p>
+              <div className="seller-meta">
+                <span>{seller.rating} / 5 rating</span>
+                <span>{seller.responseTime}</span>
+              </div>
+              <Link to={`/sellers/${seller.id}`} className="text-link">
+                Visit store
+              </Link>
+            </article>
+          ))
+        ) : (
+          <article className="panel seller-teaser">
+            <p className="panel-kicker">Seller highlights</p>
+            <h3>No seller data yet</h3>
+            <p>Enable Firestore writes and seed or add sellers so storefront cards can render here.</p>
           </article>
-        ))}
+        )}
       </section>
     </div>
   );
