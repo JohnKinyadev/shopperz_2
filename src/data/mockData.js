@@ -1,4 +1,15 @@
-export const categories = ["Phones", "Audio", "Wearables", "Gaming", "Home Office"];
+export const categories = [
+  "Phones",
+  "Laptops",
+  "Audio",
+  "Wearables",
+  "Gaming",
+  "Home Office",
+  "Clothes",
+  "Handbags",
+  "Shoes",
+  "Appliances",
+];
 
 export const categorySpecs = {
   Phones: [
@@ -6,6 +17,12 @@ export const categorySpecs = {
     { field: "processor", label: "Processor", highlightLabel: "Chip", placeholder: "Snapdragon 8 Gen 2" },
     { field: "ram", label: "RAM", highlightLabel: "RAM", placeholder: "12GB" },
     { field: "storage", label: "Storage", highlightLabel: "Storage", placeholder: "256GB" },
+  ],
+  Laptops: [
+    { field: "display", label: "Screen size", highlightLabel: "Display", placeholder: "15.6-inch IPS" },
+    { field: "processor", label: "Processor", highlightLabel: "Chip", placeholder: "Intel Core i7" },
+    { field: "ram", label: "RAM", highlightLabel: "RAM", placeholder: "16GB" },
+    { field: "storage", label: "Storage", highlightLabel: "Storage", placeholder: "512GB SSD" },
   ],
   Audio: [
     { field: "type", label: "Audio type", highlightLabel: "Type", placeholder: "Wireless earbuds" },
@@ -30,6 +47,30 @@ export const categorySpecs = {
     { field: "dimensions", label: "Dimensions", highlightLabel: "Size", placeholder: "120 x 60 x 75 cm" },
     { field: "weight", label: "Weight", highlightLabel: "Weight", placeholder: "18kg" },
     { field: "color", label: "Color", highlightLabel: "Finish", placeholder: "Matte white" },
+  ],
+  Clothes: [
+    { field: "type", label: "Clothing type", highlightLabel: "Type", placeholder: "Casual dress" },
+    { field: "size", label: "Available size", highlightLabel: "Size", placeholder: "M to XL" },
+    { field: "material", label: "Material", highlightLabel: "Fabric", placeholder: "Cotton blend" },
+    { field: "color", label: "Color", highlightLabel: "Color", placeholder: "Olive green" },
+  ],
+  Handbags: [
+    { field: "material", label: "Material", highlightLabel: "Material", placeholder: "Genuine leather" },
+    { field: "dimensions", label: "Dimensions", highlightLabel: "Size", placeholder: "32 x 24 x 12 cm" },
+    { field: "compartments", label: "Compartments", highlightLabel: "Storage", placeholder: "3 zip compartments" },
+    { field: "strapType", label: "Strap type", highlightLabel: "Strap", placeholder: "Adjustable shoulder strap" },
+  ],
+  Shoes: [
+    { field: "type", label: "Shoe type", highlightLabel: "Type", placeholder: "Running shoes" },
+    { field: "size", label: "Available size", highlightLabel: "Size", placeholder: "40 to 45" },
+    { field: "material", label: "Material", highlightLabel: "Material", placeholder: "Mesh upper" },
+    { field: "color", label: "Color", highlightLabel: "Color", placeholder: "Black and white" },
+  ],
+  Appliances: [
+    { field: "power", label: "Power rating", highlightLabel: "Power", placeholder: "1500W" },
+    { field: "capacity", label: "Capacity", highlightLabel: "Capacity", placeholder: "25 litres" },
+    { field: "dimensions", label: "Dimensions", highlightLabel: "Size", placeholder: "45 x 30 x 28 cm" },
+    { field: "warranty", label: "Warranty", highlightLabel: "Warranty", placeholder: "12 months" },
   ],
 };
 

@@ -3,6 +3,7 @@ import { useRef, useState } from "react";
 import ProductCard from "../components/ProductCard";
 import { useMarketplace } from "../context/MarketplaceContext";
 import { categories } from "../data/mockData";
+import { getOrderStatusOptions } from "../lib/orderUtils";
 import { formatPriceInput, getCategorySpecDefinitions, sanitizePriceInput } from "../lib/productUtils";
 
 const defaultProductForm = {
@@ -15,20 +16,6 @@ const defaultProductForm = {
   tags: "",
   specs: {},
 };
-
-function getOrderStatusOptions(currentStatus) {
-  const orderStatusFlow = {
-    Pending: ["Pending", "Accepted"],
-    Accepted: ["Accepted", "Preparing"],
-    Preparing: ["Preparing", "Dispatched"],
-    Dispatched: ["Dispatched", "Delivered"],
-    Delivered: ["Delivered", "Completed"],
-    Completed: ["Completed"],
-    Cancelled: ["Cancelled"],
-  };
-
-  return orderStatusFlow[currentStatus] || [currentStatus];
-}
 
 function SellerPage() {
   const { sellerId } = useParams();

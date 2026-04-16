@@ -11,6 +11,7 @@ import { auth, db, firebaseReady } from "../lib/firebase";
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut as firebaseSignOut } from "firebase/auth";
 import { collection, deleteDoc, doc, getDocs, onSnapshot, setDoc, updateDoc, writeBatch } from "firebase/firestore";
 import { buildSpecHighlights, parsePriceInput } from "../lib/productUtils";
+import { ORDER_STATUS, canBuyerCancelOrder } from "../lib/orderUtils";
 
 const STORAGE_KEY = "shopperz-state";
 const ADMIN_EMAILS = ["admin@shopperz.local", "admin@shopperz.dev"];
@@ -27,17 +28,6 @@ const FIRESTORE_COLLECTIONS = {
   sellerRequests: "sellerRequests",
   sellers: "sellers",
 };
-const ORDER_STATUS = {
-  PENDING: "Pending",
-  ACCEPTED: "Accepted",
-  REJECTED: "Rejected",
-  PREPARING: "Preparing",
-  DISPATCHED: "Dispatched",
-  DELIVERED: "Delivered",
-  COMPLETED: "Completed",
-  CANCELLED: "Cancelled",
-};
-
 const MarketplaceContext = createContext(null);
 
 function buildIsoDate(offsetDays = 0, hour = 9) {
@@ -132,7 +122,7 @@ async function seedCollectionIfEmpty(collectionName, items) {
 }
 
 function syncDocumentToFirestore(collectionName, documentData) {
-  if (!firebaseReady || !db || !auth?.currentUser) {
+  if (!firebaseReady || !db) {
     return Promise.resolve();
   }
 
@@ -140,7 +130,7 @@ function syncDocumentToFirestore(collectionName, documentData) {
 }
 
 function updateFirestoreDocument(collectionName, documentId, updates) {
-  if (!firebaseReady || !db || !auth?.currentUser) {
+  if (!firebaseReady || !db) {
     return Promise.resolve();
   }
 
@@ -148,7 +138,7 @@ function updateFirestoreDocument(collectionName, documentId, updates) {
 }
 
 function removeFirestoreDocument(collectionName, documentId) {
-  if (!firebaseReady || !db || !auth?.currentUser) {
+  if (!firebaseReady || !db) {
     return Promise.resolve();
   }
 
@@ -204,10 +194,15 @@ function buildProductHighlights(productData, tags) {
   const specHighlights = buildSpecHighlights(productData.category, productData.specs);
   const fallbackHighlightsByCategory = {
     Phones: ["Reliable performance", "All-day battery", "Ready to ship"],
+    Laptops: ["Smooth multitasking", "Portable design", "Ready to ship"],
     Audio: ["Clear sound", "Comfortable fit", "Ready to ship"],
     Wearables: ["Lightweight design", "Daily tracking", "Ready to ship"],
     Gaming: ["Smooth gameplay", "Great value", "Ready to ship"],
     "Home Office": ["Practical setup", "Space-saving", "Ready to ship"],
+    Clothes: ["Popular style", "Comfortable fit", "Ready to ship"],
+    Handbags: ["Everyday carry", "Practical storage", "Ready to ship"],
+    Shoes: ["Comfort-first design", "Everyday wear", "Ready to ship"],
+    Appliances: ["Home-ready utility", "Easy setup", "Ready to ship"],
   };
 
   const highlights = [...specHighlights, ...tags].slice(0, 3);
@@ -630,7 +625,7 @@ export function MarketplaceProvider({ children }) {
           return false;
         }
 
-        if (![ORDER_STATUS.PENDING, ORDER_STATUS.ACCEPTED, ORDER_STATUS.PREPARING].includes(order.status)) {
+        if (!canBuyerCancelOrder(order.status)) {
           setAuthError("This order can no longer be cancelled.");
           return false;
         }

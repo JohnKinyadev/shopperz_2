@@ -3,34 +3,13 @@ import { useMemo, useState } from "react";
 import { useMarketplace } from "../context/MarketplaceContext";
 import { getMarketplaceSuggestions } from "../lib/ai";
 import { formatCurrency } from "../lib/productUtils";
+import { buildOrderTitle, canBuyerCancelOrder, getSellerNextAction } from "../lib/orderUtils";
 
 const filters = ["All", "Orders", "Product inquiries", "System updates"];
 
 function findRelatedProduct(text, products) {
   const lowerText = text.toLowerCase();
   return products.find((product) => lowerText.includes(product.name.toLowerCase())) ?? null;
-}
-
-function buildOrderTitle(status) {
-  if (status === "Accepted") return "Order accepted";
-  if (status === "Preparing") return "Order being prepared";
-  if (status === "Dispatched") return "Order dispatched";
-  if (status === "Delivered") return "Order delivered to pickup point";
-  if (status === "Completed") return "Order completed";
-  if (status === "Cancelled") return "Order cancelled";
-  return "Order update";
-}
-
-function getSellerNextAction(order) {
-  const nextActionByStatus = {
-    Pending: { label: "Accept order", status: "Accepted" },
-    Accepted: { label: "Start dispatch", status: "Preparing" },
-    Preparing: { label: "Mark dispatched", status: "Dispatched" },
-    Dispatched: { label: "Mark delivered", status: "Delivered" },
-    Delivered: { label: "Mark completed", status: "Completed" },
-  };
-
-  return nextActionByStatus[order.status] || null;
 }
 
 function MessagesPage() {
@@ -144,7 +123,7 @@ function MessagesPage() {
         const sellerAction = isSellerOrder ? getSellerNextAction(order) : null;
         const canBuyerCancel =
           order.buyerEmail === currentEmail
-          && ["Pending", "Accepted", "Preparing"].includes(order.status);
+          && canBuyerCancelOrder(order.status);
 
         return {
           id: `order-${order.id}`,

@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import AIAssistantCard from "../components/AIAssistantCard";
 import ChatPanel from "../components/ChatPanel";
 import { useMarketplace } from "../context/MarketplaceContext";
+import { canBuyerCancelOrder } from "../lib/orderUtils";
 import { formatCurrency, getProductSpecEntries } from "../lib/productUtils";
 
 function ProductPage() {
@@ -289,7 +290,7 @@ function ProductPage() {
                         {order.quantity} item(s) for {order.pickupArea} - {formatCurrency(order.totalPrice)}
                       </span>
                     </div>
-                    {[ "Pending", "Accepted", "Preparing" ].includes(order.status) ? (
+                    {canBuyerCancelOrder(order.status) ? (
                       <button type="button" className="ghost-button" onClick={() => cancelOrder(order.id)}>
                         Cancel order
                       </button>

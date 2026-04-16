@@ -1,5 +1,7 @@
 import { Link } from "react-router-dom";
+import { useMemo } from "react";
 import { useMarketplace } from "../context/MarketplaceContext";
+import { canBuyerCancelOrder } from "../lib/orderUtils";
 import { formatCurrency } from "../lib/productUtils";
 
 function DashboardPage() {
@@ -13,12 +15,53 @@ function DashboardPage() {
     products,
     profile,
     savedItems,
+    currentUser,
   } = useMarketplace();
+  const currentEmail = currentUser.user?.email || profile.email;
+  const currentSellerId = profile.sellerId;
   const savedProducts = products.filter((product) => savedItems.includes(product.id));
-  const recentMessages = [...messages].slice(-4).reverse();
-  const latestNotifications = notifications.slice(0, 3);
-  const myOrders = orders.filter((order) => order.buyerEmail === profile.email);
-  const updateCount = messages.length + notifications.length + orders.length;
+  const recentMessages = useMemo(() => {
+    if (!currentUser.isAuthenticated) {
+      return [];
+    }
+
+    return [...messages]
+      .filter((message) => {
+        const product = products.find((item) => item.id === message.productId);
+        if (!product) return false;
+
+        if (profile.role === "Buyer") {
+          return message.senderName === profile.name;
+        }
+
+        return product.sellerId === currentSellerId || message.senderName === profile.name;
+      })
+      .slice(-4)
+      .reverse();
+  }, [currentSellerId, currentUser.isAuthenticated, messages, products, profile.name, profile.role]);
+  const latestNotifications = useMemo(() => {
+    if (!currentUser.isAuthenticated) {
+      return [];
+    }
+
+    return notifications
+      .filter((notification) => {
+        if (profile.role === "Buyer") {
+          return notification.targetUserEmail === currentEmail;
+        }
+
+        return notification.targetUserEmail === currentEmail || notification.targetSellerId === currentSellerId;
+      })
+      .slice(0, 3);
+  }, [currentEmail, currentSellerId, currentUser.isAuthenticated, notifications, profile.role]);
+  const myOrders = useMemo(() => {
+    if (!currentUser.isAuthenticated) {
+      return [];
+    }
+
+    return orders.filter((order) => order.buyerEmail === currentEmail);
+  }, [currentEmail, currentUser.isAuthenticated, orders]);
+  const updateCount = recentMessages.length + latestNotifications.length + myOrders.length;
   const shouldHideSellerName = profile.role === "Buyer";
   const sellerShopPath = profile.sellerId
     ? `/sellers/${profile.sellerId}`
@@ -107,7 +150,7 @@ function DashboardPage() {
                       {order.status} - {order.quantity} item(s) to {order.pickupArea}
                     </span>
                   </div>
-                  {[ "Pending", "Accepted", "Preparing" ].includes(order.status) ? (
+                  {canBuyerCancelOrder(order.status) ? (
                     <button type="button" className="ghost-button" onClick={() => cancelOrder(order.id)}>
                       Cancel order
                     </button>
