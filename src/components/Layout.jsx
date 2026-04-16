@@ -1,8 +1,42 @@
-import { NavLink, Outlet } from "react-router-dom";
+import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useMarketplace } from "../context/MarketplaceContext";
+import { categories } from "../data/mockData";
+import { useEffect, useState } from "react";
 
 function Layout() {
   const { currentUser, profile, signOut, savedItems } = useMarketplace();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("All");
+
+  useEffect(() => {
+    if (location.pathname !== "/") {
+      return;
+    }
+
+    const params = new URLSearchParams(location.search);
+    setSearchTerm(params.get("q") ?? "");
+    setSelectedCategory(params.get("category") ?? "All");
+  }, [location.pathname, location.search]);
+
+  function handleSearchSubmit(event) {
+    event.preventDefault();
+    const params = new URLSearchParams();
+
+    if (searchTerm.trim()) {
+      params.set("q", searchTerm.trim());
+    }
+
+    if (selectedCategory !== "All") {
+      params.set("category", selectedCategory);
+    }
+
+    navigate({
+      pathname: "/",
+      search: params.toString() ? `?${params.toString()}` : "",
+    });
+  }
 
   return (
     <div className="app-shell">
@@ -20,15 +54,26 @@ function Layout() {
             <strong>{profile.location}</strong>
           </div>
 
-          <form className="header-search" onSubmit={(event) => event.preventDefault()}>
-            <select defaultValue="All" aria-label="Search category">
+          <form className="header-search" onSubmit={handleSearchSubmit}>
+            <select
+              value={selectedCategory}
+              aria-label="Search category"
+              onChange={(event) => setSelectedCategory(event.target.value)}
+            >
               <option value="All">All</option>
-              <option value="Phones">Phones</option>
-              <option value="Audio">Audio</option>
-              <option value="Wearables">Wearables</option>
-              <option value="Home Office">Home Office</option>
+              {categories.map((category) => (
+                <option key={category} value={category}>
+                  {category}
+                </option>
+              ))}
             </select>
-            <input type="search" placeholder="Search Shopperz" aria-label="Search Shopperz" />
+            <input
+              type="search"
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+              placeholder="Search Shopperz"
+              aria-label="Search Shopperz"
+            />
             <button type="submit">Search</button>
           </form>
 

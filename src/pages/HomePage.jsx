@@ -1,5 +1,5 @@
-import { Link } from "react-router-dom";
-import { useMemo, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
+import { useMemo } from "react";
 import ProductCard from "../components/ProductCard";
 import heroImage from "../assets/hero_1.jpg";
 import { categories } from "../data/mockData";
@@ -18,8 +18,32 @@ function HomePage() {
     currentSellerRequest,
   } =
     useMarketplace();
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("All");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const searchTerm = searchParams.get("q") ?? "";
+  const selectedCategory = searchParams.get("category") ?? "All";
+
+  function updateFilters(nextValues) {
+    const nextSearchParams = new URLSearchParams(searchParams);
+
+    if ("searchTerm" in nextValues) {
+      const nextSearchTerm = nextValues.searchTerm.trim();
+      if (nextSearchTerm) {
+        nextSearchParams.set("q", nextSearchTerm);
+      } else {
+        nextSearchParams.delete("q");
+      }
+    }
+
+    if ("selectedCategory" in nextValues) {
+      if (nextValues.selectedCategory && nextValues.selectedCategory !== "All") {
+        nextSearchParams.set("category", nextValues.selectedCategory);
+      } else {
+        nextSearchParams.delete("category");
+      }
+    }
+
+    setSearchParams(nextSearchParams, { replace: true });
+  }
 
   const visibleProducts = useMemo(() => {
     return products.filter((product) => {
@@ -42,7 +66,7 @@ function HomePage() {
       ? `/sellers/${currentSellerRequest.sellerId}`
       : "/seller-request";
   const sellerCtaLabel =
-    profile.role === "Seller"
+    profile.sellerId
       ? "Manage my shop"
       : currentSellerRequest?.status === "Pending"
         ? "Pending"
@@ -86,7 +110,7 @@ function HomePage() {
           <input
             type="search"
             value={searchTerm}
-            onChange={(event) => setSearchTerm(event.target.value)}
+            onChange={(event) => updateFilters({ searchTerm: event.target.value })}
             placeholder="Search by product, seller, or use case"
           />
         </label>
@@ -95,7 +119,7 @@ function HomePage() {
           <span>Category</span>
           <select
             value={selectedCategory}
-            onChange={(event) => setSelectedCategory(event.target.value)}
+            onChange={(event) => updateFilters({ selectedCategory: event.target.value })}
           >
             <option value="All">All</option>
             {categories.map((category) => (
