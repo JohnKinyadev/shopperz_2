@@ -1,37 +1,62 @@
 # Shopperz
 
-Shopperz is a frontend marketplace capstone built with React and Vite. It focuses on product discovery, buyer-seller interaction, saved shopping flows, and an AI-assisted product guidance experience.
+Shopperz is a React + Vite marketplace prototype focused on product discovery, buyer-seller interaction, seller onboarding, and AI-assisted shopping guidance. It is designed for demos and capstone presentations, so the main flows work with local state and seeded data while still supporting optional Firebase authentication and an optional live AI endpoint.
 
-The current version is intentionally frontend-first. Core user flows are implemented with mock data and local state so the app is easy to demo without requiring backend setup.
+## What The System Does
 
-## Features
+Shopperz supports three main roles:
+
+- Buyers can browse products, filter by category, save items, compare up to three products, chat about products, and get AI buying guidance.
+- Sellers can apply for storefront access, manage a store page, and post products with category-specific features.
+- Admins can review seller applications and approve or reject access to the marketplace.
+
+## Key Features
 
 - Product browsing with search and category filtering
-- Product detail pages with reviews and seller context
-- Wishlist and product comparison flows
-- Buyer-seller messaging UI
-- Seller storefront pages
-- User dashboard and notifications
-- Mock sign-in and sign-up experience
-- AI assistant panel on product pages
-- Responsive pink, white, and orange themed interface
+- Featured listings with category-aware product highlights
+- Product detail pages with reviews, seller context, messaging, and AI assistance
+- Wishlist and comparison flows for buyer shortlisting
+- Buyer message threads and notification updates
+- Dashboard for quick access to saved items, updates, and seller actions
+- Sign up and sign in flow with Firebase Auth support
+- Demo admin login for marketplace moderation
+- Seller onboarding request flow with admin approval
+- Seller storefront pages with posting tools and order-status controls
+- Category-specific product input fields for `Phones`, `Audio`, `Wearables`, `Gaming`, and `Home Office`
+- Posted product specs reused across featured listings, product pages, and comparison views
+- Price input that accepts large values with comma formatting such as `1,200` or `12,500`
+- Local persistence with `localStorage` for products, messages, notifications, seller requests, and user state
+
+## Category-Specific Listing Inputs
+
+When a seller posts a product, the form changes based on the selected category so the seller only fills in relevant features.
+
+Examples:
+
+- `Phones`: display, processor, RAM, storage
+- `Audio`: type, connectivity, battery life, noise cancellation
+- `Wearables`: type, water resistance, battery life, compatibility
+- `Gaming`: platform, genre, players, release year
+- `Home Office`: material, dimensions, weight, color
+
+Those inputs are reused as listing highlights so featured cards and compare views show category-relevant information instead of only generic tags.
 
 ## Tech Stack
 
-- React
+- React 19
 - Vite
 - React Router
-- Firebase SDK scaffold
+- Firebase SDK
+- Browser `localStorage`
 
-## Project Scope
+## Project Behavior
 
-This project is currently a frontend prototype:
+This project is frontend-first, but it includes optional integration points:
 
-- Authentication is mocked with local state
-- Product, seller, review, and message data come from local mock data
-- User state is persisted with `localStorage`
-- Firebase is scaffolded for future integration
-- The AI assistant supports a real endpoint if one is provided
+- Buyer, seller, admin, product, review, and message flows are demo-ready with local state
+- Firebase Auth can be enabled through environment variables
+- The AI assistant can run in demo fallback mode or call a live endpoint
+- Seller approval is handled inside the app through the admin page
 
 ## Getting Started
 
@@ -55,9 +80,7 @@ npm run build
 
 ## Environment Variables
 
-Copy the values in `.env.example` into a `.env.local` file if you want to connect Firebase or a live AI endpoint.
-
-Example:
+Copy `.env.example` into `.env.local` if you want to enable Firebase or connect a live AI service.
 
 ```env
 VITE_FIREBASE_API_KEY=
@@ -70,40 +93,43 @@ VITE_AI_ENDPOINT=
 VITE_AI_AUTH_TOKEN=
 ```
 
+## Authentication And Roles
+
+- Standard users can create an account or sign in
+- Approved seller requests upgrade a buyer into a seller profile
+- Admin access is available through the demo login shortcut on the auth page
+- Demo admin credentials:
+  `admin@shopperz.local` / `Admin123!`
+
 ## AI Assistant
 
-The product-page assistant works in two modes:
+The AI assistant on the product page uses:
+
+- buyer profile information
+- product details and highlights
+- the active user prompt
+
+It runs in two modes:
 
 - Demo fallback mode when no endpoint is configured
-- Live endpoint mode when `VITE_AI_ENDPOINT` is set
+- Live API mode when `VITE_AI_ENDPOINT` is provided
 
-The frontend sends product data, buyer profile data, and the user prompt to the configured endpoint.
+## Main Routes
 
-## Firebase
-
-Firebase setup is scaffolded in `src/lib/firebase.js` for future use with:
-
-- Firebase Auth
-- Firestore
-- Firebase Storage
-
-For the current capstone version, Firebase is optional and not required for the app to run.
-
-## Main Pages
-
-- `/` - Home and featured listings
-- `/products/:productId` - Product details, AI assistant, and chat
+- `/` - Home page with featured listings and seller highlights
+- `/products/:productId` - Product details, AI assistant, reviews, and chat
 - `/wishlist` - Saved products
-- `/compare` - Product comparison
-- `/messages` - Conversation threads
-- `/notifications` - User updates
-- `/dashboard` - User dashboard
-- `/sellers/:sellerId` - Seller storefront
-- `/auth` - Mock authentication page
+- `/compare` - Side-by-side comparison
+- `/messages` - Product conversation threads and AI suggestions
+- `/notifications` - Recent system and marketplace updates
+- `/dashboard` - Buyer or seller dashboard
+- `/sellers/:sellerId` - Seller storefront and seller product management
+- `/seller-request` - Seller application flow
+- `/admin` - Seller approval dashboard
+- `/auth` - Sign in and sign up
 
 ## Notes
 
-- `dist/` is ignored and not committed as source
+- `dist/` is generated output and should not be edited manually
 - `.env.local` should not be committed
-- The hero image is included locally in `src/assets/hero_1.jpg`
-
+- App state is persisted locally, so refreshing the browser keeps most demo actions
