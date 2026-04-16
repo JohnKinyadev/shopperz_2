@@ -1,5 +1,5 @@
 import { Link, useParams } from "react-router-dom";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import ProductCard from "../components/ProductCard";
 import { useMarketplace } from "../context/MarketplaceContext";
 import { categories } from "../data/mockData";
@@ -35,6 +35,7 @@ function SellerPage() {
   const seller = sellers.find((item) => item.id === sellerId);
   const [newProduct, setNewProduct] = useState(defaultProductForm);
   const [editingProductId, setEditingProductId] = useState(null);
+  const productFormRef = useRef(null);
 
   if (!seller) {
     return (
@@ -47,6 +48,7 @@ function SellerPage() {
 
   const isSellerOwner = profile.sellerId === seller.id;
   const sellerProducts = products.filter((product) => product.sellerId === seller.id);
+  const editingProduct = sellerProducts.find((product) => product.id === editingProductId) ?? null;
 
   function resetProductForm() {
     setNewProduct(defaultProductForm);
@@ -65,6 +67,23 @@ function SellerPage() {
       tags: Array.isArray(product.tags) ? product.tags.join(", ") : product.tags ?? "",
       specs: { ...(product.specs ?? {}) },
     });
+    requestAnimationFrame(() => {
+      productFormRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }
+
+  function handleDeleteProduct(product) {
+    const confirmed = window.confirm(`Delete "${product.name}" from your store? This action cannot be undone.`);
+
+    if (!confirmed) {
+      return;
+    }
+
+    if (editingProductId === product.id) {
+      resetProductForm();
+    }
+
+    deleteProduct(product.id);
   }
 
   function handleProductChange(event) {
@@ -132,11 +151,12 @@ function SellerPage() {
       </section>
 
       {isSellerOwner ? (
-        <section className="panel">
+        <section className="panel" ref={productFormRef}>
           <div className="panel-heading">
             <div>
               <p className="panel-kicker">Seller controls</p>
               <h2>{editingProductId ? "Edit product" : "Add a new product"}</h2>
+              {editingProduct ? <p>Editing {editingProduct.name}</p> : null}
             </div>
           </div>
 
@@ -265,7 +285,7 @@ function SellerPage() {
                 <button type="button" className="secondary-button" onClick={() => loadProductIntoForm(product)}>
                   Edit product
                 </button>
-                <button type="button" className="ghost-button" onClick={() => deleteProduct(product.id)}>
+                <button type="button" className="ghost-button" onClick={() => handleDeleteProduct(product)}>
                   Delete product
                 </button>
               </div>
