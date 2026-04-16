@@ -9,7 +9,7 @@ import {
 } from "../data/mockData";
 import { auth, db, firebaseReady } from "../lib/firebase";
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut as firebaseSignOut } from "firebase/auth";
-import { collection, doc, getDocs, onSnapshot, setDoc, updateDoc, writeBatch } from "firebase/firestore";
+import { collection, deleteDoc, doc, getDocs, onSnapshot, setDoc, updateDoc, writeBatch } from "firebase/firestore";
 import { buildSpecHighlights, parsePriceInput } from "../lib/productUtils";
 
 const STORAGE_KEY = "shopperz-state";
@@ -137,6 +137,14 @@ function updateFirestoreDocument(collectionName, documentId, updates) {
   return updateDoc(doc(db, collectionName, documentId), updates);
 }
 
+function removeFirestoreDocument(collectionName, documentId) {
+  if (!firebaseReady || !db || !auth?.currentUser) {
+    return Promise.resolve();
+  }
+
+  return deleteDoc(doc(db, collectionName, documentId));
+}
+
 function getLatestSellerRequestForEmail(requests, email) {
   if (!email) return null;
 
@@ -150,6 +158,16 @@ function normalizeTagList(tagString = "") {
     .split(",")
     .map((tag) => tag.trim())
     .filter(Boolean);
+}
+
+function normalizeProductSpecs(category, specs = {}) {
+  return (categorySpecs[category] || []).reduce((collection, definition) => {
+    const nextValue = specs?.[definition.field]?.trim?.() ?? "";
+    if (nextValue) {
+      collection[definition.field] = nextValue;
+    }
+    return collection;
+  }, {});
 }
 
 function buildProductHighlights(productData, tags) {
@@ -756,13 +774,7 @@ export function MarketplaceProvider({ children }) {
           : normalizeTagList(productData.tags);
         const highlights = buildProductHighlights(productData, tags);
         const createdAt = new Date().toISOString();
-        const normalizedSpecs = (categorySpecs[productData.category] || []).reduce((collection, definition) => {
-          const nextValue = productData.specs?.[definition.field]?.trim?.() ?? "";
-          if (nextValue) {
-            collection[definition.field] = nextValue;
-          }
-          return collection;
-        }, {});
+        const normalizedSpecs = normalizeProductSpecs(productData.category, productData.specs);
 
         const product = {
           ...productData,
@@ -788,6 +800,68 @@ export function MarketplaceProvider({ children }) {
           console.error("Failed to sync product to Firestore:", error);
         });
         return product.id;
+      },
+      updateProduct: (productId, productData) => {
+        const existingProduct = products.find((product) => product.id === productId);
+
+        if (!existingProduct || existingProduct.sellerId !== profile.sellerId) {
+          setAuthError("You can only edit products from your own store.");
+          return null;
+        }
+
+        const price = parsePriceInput(productData.price);
+
+        if (Number.isNaN(price)) {
+          setAuthError("Enter a valid price before saving the product.");
+          return null;
+        }
+
+        const tags = Array.isArray(productData.tags)
+          ? productData.tags
+          : normalizeTagList(productData.tags);
+        const normalizedSpecs = normalizeProductSpecs(productData.category, productData.specs);
+        const updatedProduct = {
+          ...existingProduct,
+          ...productData,
+          price,
+          stock: Number(productData.stock),
+          rating: Number(productData.rating) || existingProduct.rating || 4.7,
+          tags,
+          specs: normalizedSpecs,
+          highlights: buildProductHighlights({ ...existingProduct, ...productData, specs: normalizedSpecs }, tags),
+          image: productData.image || existingProduct.image,
+          seller: profile.sellerName || profile.name,
+          sellerResponseTime: profile.responseTime || existingProduct.sellerResponseTime || "Usually replies in 10 min",
+          updatedAt: new Date().toISOString(),
+        };
+
+        updatedProduct.aiTip = `An updated ${updatedProduct.category.toLowerCase()} listing from ${updatedProduct.seller} with ${updatedProduct.highlights[0].toLowerCase()}.`;
+
+        setAuthError(null);
+        setProducts((current) =>
+          current.map((product) => (product.id === productId ? updatedProduct : product)),
+        );
+        void syncDocumentToFirestore(FIRESTORE_COLLECTIONS.products, updatedProduct).catch((error) => {
+          console.error("Failed to update product in Firestore:", error);
+        });
+        return productId;
+      },
+      deleteProduct: (productId) => {
+        const existingProduct = products.find((product) => product.id === productId);
+
+        if (!existingProduct || existingProduct.sellerId !== profile.sellerId) {
+          setAuthError("You can only delete products from your own store.");
+          return false;
+        }
+
+        setAuthError(null);
+        setProducts((current) => current.filter((product) => product.id !== productId));
+        setSavedItems((current) => current.filter((id) => id !== productId));
+        setCompareItems((current) => current.filter((id) => id !== productId));
+        void removeFirestoreDocument(FIRESTORE_COLLECTIONS.products, productId).catch((error) => {
+          console.error("Failed to delete product from Firestore:", error);
+        });
+        return true;
       },
       updateOrderStatus: (orderId, status) => {
         const updatedAt = new Date().toISOString();

@@ -27,11 +27,14 @@ function SellerPage() {
     toggleSavedItem,
     profile,
     addProduct,
+    updateProduct,
+    deleteProduct,
     orders,
     updateOrderStatus,
   } = useMarketplace();
   const seller = sellers.find((item) => item.id === sellerId);
   const [newProduct, setNewProduct] = useState(defaultProductForm);
+  const [editingProductId, setEditingProductId] = useState(null);
 
   if (!seller) {
     return (
@@ -44,6 +47,25 @@ function SellerPage() {
 
   const isSellerOwner = profile.sellerId === seller.id;
   const sellerProducts = products.filter((product) => product.sellerId === seller.id);
+
+  function resetProductForm() {
+    setNewProduct(defaultProductForm);
+    setEditingProductId(null);
+  }
+
+  function loadProductIntoForm(product) {
+    setEditingProductId(product.id);
+    setNewProduct({
+      name: product.name,
+      category: product.category,
+      price: String(product.price ?? ""),
+      stock: String(product.stock ?? ""),
+      description: product.description ?? "",
+      image: product.image ?? "",
+      tags: Array.isArray(product.tags) ? product.tags.join(", ") : product.tags ?? "",
+      specs: { ...(product.specs ?? {}) },
+    });
+  }
 
   function handleProductChange(event) {
     const { name, value } = event.target;
@@ -68,9 +90,11 @@ function SellerPage() {
 
   function handleProductSubmit(event) {
     event.preventDefault();
-    const productId = addProduct(newProduct);
+    const productId = editingProductId
+      ? updateProduct(editingProductId, newProduct)
+      : addProduct(newProduct);
     if (productId) {
-      setNewProduct(defaultProductForm);
+      resetProductForm();
     }
   }
 
@@ -112,7 +136,7 @@ function SellerPage() {
           <div className="panel-heading">
             <div>
               <p className="panel-kicker">Seller controls</p>
-              <h2>Add a new product</h2>
+              <h2>{editingProductId ? "Edit product" : "Add a new product"}</h2>
             </div>
           </div>
 
@@ -186,8 +210,13 @@ function SellerPage() {
             </label>
 
             <button type="submit" className="primary-button">
-              Post product
+              {editingProductId ? "Save changes" : "Post product"}
             </button>
+            {editingProductId ? (
+              <button type="button" className="secondary-button" onClick={resetProductForm}>
+                Cancel edit
+              </button>
+            ) : null}
           </form>
 
           {sellerOrders.length > 0 ? (
@@ -223,14 +252,25 @@ function SellerPage() {
 
       <section className="product-grid">
         {sellerProducts.map((product) => (
-          <ProductCard
-            key={product.id}
-            product={product}
-            isCompared={compareItems.includes(product.id)}
-            isSaved={savedItems.includes(product.id)}
-            onToggleCompare={toggleCompareItem}
-            onToggleSave={toggleSavedItem}
-          />
+          <div key={product.id} style={{ display: "grid", gap: "12px" }}>
+            <ProductCard
+              product={product}
+              isCompared={compareItems.includes(product.id)}
+              isSaved={savedItems.includes(product.id)}
+              onToggleCompare={toggleCompareItem}
+              onToggleSave={toggleSavedItem}
+            />
+            {isSellerOwner ? (
+              <div className="inline-actions">
+                <button type="button" className="secondary-button" onClick={() => loadProductIntoForm(product)}>
+                  Edit product
+                </button>
+                <button type="button" className="ghost-button" onClick={() => deleteProduct(product.id)}>
+                  Delete product
+                </button>
+              </div>
+            ) : null}
+          </div>
         ))}
       </section>
     </div>
