@@ -18,13 +18,12 @@ const defaultProductForm = {
 
 function getOrderStatusOptions(currentStatus) {
   const orderStatusFlow = {
-    Pending: ["Pending", "Accepted", "Rejected"],
-    Accepted: ["Accepted", "Preparing", "Cancelled"],
-    Preparing: ["Preparing", "Dispatched", "Cancelled"],
+    Pending: ["Pending", "Accepted"],
+    Accepted: ["Accepted", "Preparing"],
+    Preparing: ["Preparing", "Dispatched"],
     Dispatched: ["Dispatched", "Delivered"],
     Delivered: ["Delivered", "Completed"],
     Completed: ["Completed"],
-    Rejected: ["Rejected"],
     Cancelled: ["Cancelled"],
   };
 

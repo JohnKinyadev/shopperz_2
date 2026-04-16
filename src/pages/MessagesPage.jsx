@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { useMemo, useState } from "react";
 import { useMarketplace } from "../context/MarketplaceContext";
 import { getMarketplaceSuggestions } from "../lib/ai";
+import { formatCurrency } from "../lib/productUtils";
 
 const filters = ["All", "Orders", "Product inquiries", "System updates"];
 
@@ -16,14 +17,37 @@ function buildOrderTitle(status) {
   if (status === "Dispatched") return "Order dispatched";
   if (status === "Delivered") return "Order delivered to pickup point";
   if (status === "Completed") return "Order completed";
-  if (status === "Rejected") return "Order rejected";
   if (status === "Cancelled") return "Order cancelled";
   return "Order update";
 }
 
+function getSellerNextAction(order) {
+  const nextActionByStatus = {
+    Pending: { label: "Accept order", status: "Accepted" },
+    Accepted: { label: "Start dispatch", status: "Preparing" },
+    Preparing: { label: "Mark dispatched", status: "Dispatched" },
+    Dispatched: { label: "Mark delivered", status: "Delivered" },
+    Delivered: { label: "Mark completed", status: "Completed" },
+  };
+
+  return nextActionByStatus[order.status] || null;
+}
+
 function MessagesPage() {
-  const { currentUser, messages, notifications, orders, products, sellers, profile } = useMarketplace();
+  const {
+    cancelOrder,
+    currentUser,
+    messages,
+    notifications,
+    orders,
+    products,
+    profile,
+    sellers,
+    updateOrderStatus,
+  } = useMarketplace();
   const [activeFilter, setActiveFilter] = useState("All");
+  const currentEmail = currentUser.user?.email || profile.email;
+  const currentSellerId = profile.sellerId;
 
   const aiSuggestions = useMemo(() => {
     if (profile.role !== "Buyer") {
@@ -33,8 +57,58 @@ function MessagesPage() {
     return getMarketplaceSuggestions(products, profile, 3);
   }, [products, profile]);
 
+  const visibleMessages = useMemo(() => {
+    if (!currentUser.isAuthenticated) {
+      return [];
+    }
+
+    return messages.filter((message) => {
+      const product = products.find((item) => item.id === message.productId);
+      if (!product) return false;
+
+      if (profile.role === "Buyer") {
+        return message.senderName === profile.name;
+      }
+
+      return product.sellerId === currentSellerId || message.senderName === profile.name;
+    });
+  }, [currentSellerId, currentUser.isAuthenticated, messages, products, profile.name, profile.role]);
+
+  const visibleOrders = useMemo(() => {
+    if (!currentUser.isAuthenticated) {
+      return [];
+    }
+
+    return orders.filter((order) => {
+      const isBuyerOrder = order.buyerEmail === currentEmail;
+      const isSellerOrder = order.sellerId === currentSellerId;
+
+      if (profile.role === "Buyer") {
+        return isBuyerOrder;
+      }
+
+      return isBuyerOrder || isSellerOrder;
+    });
+  }, [currentEmail, currentSellerId, currentUser.isAuthenticated, orders, profile.role]);
+
+  const visibleNotifications = useMemo(() => {
+    if (!currentUser.isAuthenticated) {
+      return [];
+    }
+
+    return notifications.filter((notification) => {
+      if (profile.role === "Buyer") {
+        return notification.targetUserEmail === currentEmail;
+      }
+
+      const isTargetedToBuyer = notification.targetUserEmail === currentEmail;
+      const isTargetedToSeller = notification.targetSellerId === currentSellerId;
+      return isTargetedToBuyer || isTargetedToSeller;
+    });
+  }, [currentEmail, currentSellerId, currentUser.isAuthenticated, notifications, profile.role]);
+
   const updates = useMemo(() => {
-    const productInquiryUpdates = [...messages]
+    const productInquiryUpdates = [...visibleMessages]
       .reverse()
       .map((message) => {
         const product = products.find((item) => item.id === message.productId);
@@ -61,29 +135,39 @@ function MessagesPage() {
       })
       .filter(Boolean);
 
-    const orderUpdates = [...orders]
+    const orderUpdates = [...visibleOrders]
       .reverse()
       .map((order) => {
         const product = products.find((item) => item.id === order.productId);
         const seller = sellers.find((item) => item.id === order.sellerId);
+        const isSellerOrder = order.sellerId === currentSellerId;
+        const sellerAction = isSellerOrder ? getSellerNextAction(order) : null;
+        const canBuyerCancel =
+          order.buyerEmail === currentEmail
+          && ["Pending", "Accepted", "Preparing"].includes(order.status);
 
         return {
           id: `order-${order.id}`,
           filter: "Orders",
-          kicker: "Order progress",
+          kicker: isSellerOrder ? "Store order" : "Order progress",
           title: buildOrderTitle(order.status),
-          description: `${order.productName} is now marked as ${order.status.toLowerCase()}.`,
+          description: `${order.productName} - ${order.quantity} item(s) for ${order.pickupArea}.`,
           time: order.updatedAt || order.createdAt || "Just now",
           image: product?.image || seller?.coverImage || "https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&w=900&q=80",
-          meta: seller ? `${seller.name} - ${order.status}` : order.status,
+          meta: isSellerOrder
+            ? `${order.buyerName} - ${order.deliveryLocation}`
+            : `${seller?.name || order.sellerName} - ${formatCurrency(order.totalPrice)}`,
           primaryHref: product ? `/products/${product.id}` : "/",
           primaryLabel: product ? "Open product" : "Browse products",
           secondaryHref: seller ? `/sellers/${seller.id}` : null,
           secondaryLabel: seller ? "View seller" : null,
+          order,
+          sellerAction,
+          canBuyerCancel,
         };
       });
 
-    const systemUpdates = notifications.map((notification) => {
+    const systemUpdates = visibleNotifications.map((notification) => {
       const relatedProduct = findRelatedProduct(
         `${notification.title} ${notification.description}`,
         products,
@@ -109,7 +193,7 @@ function MessagesPage() {
     });
 
     return [...productInquiryUpdates, ...orderUpdates, ...systemUpdates];
-  }, [messages, notifications, orders, products, sellers]);
+  }, [currentEmail, currentSellerId, products, sellers, visibleMessages, visibleNotifications, visibleOrders]);
 
   const filteredUpdates = activeFilter === "All"
     ? updates
@@ -122,7 +206,7 @@ function MessagesPage() {
           <p className="panel-kicker">Updates & Conversations</p>
           <h1>Track product activity without live chat</h1>
           <p className="section-support">
-            Follow buyer inquiries, seller responses, order movement, and system nudges from one place.
+            Follow your own product inquiries, order movement, and marketplace nudges from one place.
           </p>
         </div>
         <span>{filteredUpdates.length} visible updates</span>
@@ -224,6 +308,24 @@ function MessagesPage() {
                     <Link to={update.secondaryHref} className="secondary-button link-button">
                       {update.secondaryLabel}
                     </Link>
+                  ) : null}
+                  {update.filter === "Orders" && update.sellerAction ? (
+                    <button
+                      type="button"
+                      className="secondary-button"
+                      onClick={() => updateOrderStatus(update.order.id, update.sellerAction.status)}
+                    >
+                      {update.sellerAction.label}
+                    </button>
+                  ) : null}
+                  {update.filter === "Orders" && update.canBuyerCancel ? (
+                    <button
+                      type="button"
+                      className="ghost-button"
+                      onClick={() => cancelOrder(update.order.id)}
+                    >
+                      Cancel order
+                    </button>
                   ) : null}
                 </div>
               </div>
