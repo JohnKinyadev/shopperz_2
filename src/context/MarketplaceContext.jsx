@@ -27,6 +27,16 @@ const FIRESTORE_COLLECTIONS = {
   sellerRequests: "sellerRequests",
   sellers: "sellers",
 };
+const ORDER_STATUS = {
+  PENDING: "Pending",
+  ACCEPTED: "Accepted",
+  REJECTED: "Rejected",
+  PREPARING: "Preparing",
+  DISPATCHED: "Dispatched",
+  DELIVERED: "Delivered",
+  COMPLETED: "Completed",
+  CANCELLED: "Cancelled",
+};
 
 const MarketplaceContext = createContext(null);
 
@@ -168,6 +178,26 @@ function normalizeProductSpecs(category, specs = {}) {
     }
     return collection;
   }, {});
+}
+
+function getPendingReservedQuantity(orders, productId, excludeOrderId = null) {
+  return orders
+    .filter((order) =>
+      order.productId === productId
+      && order.id !== excludeOrderId
+      && order.status === ORDER_STATUS.PENDING,
+    )
+    .reduce((sum, order) => sum + Number(order.quantity || 0), 0);
+}
+
+function hasAcceptedStockDeduction(status) {
+  return [
+    ORDER_STATUS.ACCEPTED,
+    ORDER_STATUS.PREPARING,
+    ORDER_STATUS.DISPATCHED,
+    ORDER_STATUS.DELIVERED,
+    ORDER_STATUS.COMPLETED,
+  ].includes(status);
 }
 
 function buildProductHighlights(productData, tags) {
@@ -462,6 +492,15 @@ export function MarketplaceProvider({ children }) {
       currentUser,
       authError,
       currentSellerRequest,
+      getAvailableStock(productId, excludeOrderId = null) {
+        const product = products.find((item) => item.id === productId);
+        if (!product) return 0;
+
+        return Math.max(
+          0,
+          Number(product.stock || 0) - getPendingReservedQuantity(orders, productId, excludeOrderId),
+        );
+      },
       toggleSavedItem(productId) {
         if (!currentUser.isAuthenticated) {
           setAuthError("Sign in to save items to your wishlist.");
@@ -488,6 +527,163 @@ export function MarketplaceProvider({ children }) {
 
           return [...current, productId];
         });
+      },
+      placeOrder(orderInput) {
+        if (!currentUser.isAuthenticated) {
+          setAuthError("Sign in to place an order.");
+          return false;
+        }
+
+        const product = products.find((item) => item.id === orderInput.productId);
+
+        if (!product) {
+          setAuthError("This product is no longer available.");
+          return null;
+        }
+
+        const quantity = Math.max(1, Number(orderInput.quantity || 0));
+        const availableStock = Math.max(
+          0,
+          Number(product.stock || 0) - getPendingReservedQuantity(orders, product.id),
+        );
+
+        if (!Number.isFinite(quantity) || quantity < 1) {
+          setAuthError("Enter a valid quantity to place the order.");
+          return null;
+        }
+
+        if (quantity > availableStock) {
+          setAuthError(`Only ${availableStock} item(s) are currently available for this order.`);
+          return null;
+        }
+
+        const nowIso = new Date().toISOString();
+        const order = {
+          id: `order-${Date.now()}`,
+          productId: product.id,
+          productName: product.name,
+          sellerId: product.sellerId,
+          sellerName: product.seller,
+          buyerId: currentUser.user?.uid || profile.email,
+          buyerEmail: currentUser.user?.email || profile.email,
+          buyerName: orderInput.recipientName.trim(),
+          buyerPhone: orderInput.phone.trim(),
+          deliveryLocation: orderInput.deliveryLocation.trim(),
+          pickupArea: orderInput.pickupArea.trim(),
+          deliveryNotes: orderInput.deliveryNotes.trim(),
+          paymentMethod: orderInput.paymentMethod,
+          quantity,
+          unitPrice: Number(product.price),
+          totalPrice: Number(product.price) * quantity,
+          status: ORDER_STATUS.PENDING,
+          createdAt: nowIso,
+          updatedAt: nowIso,
+        };
+        const buyerNotification = {
+          id: `notif-${Date.now()}`,
+          type: "order",
+          title: "Order placed",
+          description: `${product.name} order received and waiting for seller confirmation.`,
+          time: "Just now",
+          read: false,
+          createdAt: nowIso,
+          orderId: order.id,
+          targetUserEmail: order.buyerEmail,
+        };
+        const sellerNotification = {
+          id: `notif-${Date.now() + 1}`,
+          type: "order",
+          title: "New order received",
+          description: `${order.quantity} x ${product.name} needs review for ${order.pickupArea}.`,
+          time: "Just now",
+          read: false,
+          createdAt: nowIso,
+          orderId: order.id,
+          targetSellerId: product.sellerId,
+        };
+
+        setAuthError(null);
+        setOrders((current) => [order, ...current]);
+        setNotifications((current) => [sellerNotification, buyerNotification, ...current]);
+
+        void Promise.all([
+          syncDocumentToFirestore(FIRESTORE_COLLECTIONS.orders, order),
+          syncDocumentToFirestore(FIRESTORE_COLLECTIONS.notifications, buyerNotification),
+          syncDocumentToFirestore(FIRESTORE_COLLECTIONS.notifications, sellerNotification),
+        ]).catch((error) => {
+          console.error("Failed to sync order to Firestore:", error);
+        });
+
+        return order.id;
+      },
+      cancelOrder(orderId) {
+        const order = orders.find((item) => item.id === orderId);
+
+        if (!order) {
+          setAuthError("Order not found.");
+          return false;
+        }
+
+        const isBuyer = order.buyerEmail === (currentUser.user?.email || profile.email);
+        if (!isBuyer) {
+          setAuthError("You can only cancel your own orders.");
+          return false;
+        }
+
+        if (![ORDER_STATUS.PENDING, ORDER_STATUS.ACCEPTED, ORDER_STATUS.PREPARING].includes(order.status)) {
+          setAuthError("This order can no longer be cancelled.");
+          return false;
+        }
+
+        const nowIso = new Date().toISOString();
+        const shouldRestoreStock = hasAcceptedStockDeduction(order.status);
+        const currentProduct = products.find((product) => product.id === order.productId);
+        const restoredStock = Number(currentProduct?.stock || 0) + Number(order.quantity || 0);
+        const nextOrder = {
+          ...order,
+          status: ORDER_STATUS.CANCELLED,
+          updatedAt: nowIso,
+          cancelledAt: nowIso,
+        };
+        const sellerNotification = {
+          id: `notif-${Date.now()}`,
+          type: "order",
+          title: "Order cancelled",
+          description: `${order.productName} was cancelled by ${order.buyerName}.`,
+          time: "Just now",
+          read: false,
+          createdAt: nowIso,
+          orderId: order.id,
+          targetSellerId: order.sellerId,
+        };
+
+        setAuthError(null);
+        setOrders((current) => current.map((item) => (item.id === orderId ? nextOrder : item)));
+        if (shouldRestoreStock) {
+          setProducts((current) =>
+            current.map((product) =>
+              product.id === order.productId
+                ? { ...product, stock: restoredStock, updatedAt: nowIso }
+                : product,
+            ),
+          );
+        }
+        setNotifications((current) => [sellerNotification, ...current]);
+
+        void Promise.all([
+          syncDocumentToFirestore(FIRESTORE_COLLECTIONS.orders, nextOrder),
+          syncDocumentToFirestore(FIRESTORE_COLLECTIONS.notifications, sellerNotification),
+          shouldRestoreStock
+            ? updateFirestoreDocument(FIRESTORE_COLLECTIONS.products, order.productId, {
+                stock: restoredStock,
+                updatedAt: nowIso,
+              })
+            : Promise.resolve(),
+        ]).catch((error) => {
+          console.error("Failed to cancel order in Firestore:", error);
+        });
+
+        return true;
       },
       sendMessage(productId, text) {
         const trimmed = text.trim();
@@ -864,19 +1060,75 @@ export function MarketplaceProvider({ children }) {
         return true;
       },
       updateOrderStatus: (orderId, status) => {
-        const updatedAt = new Date().toISOString();
-        setOrders((current) =>
-          current.map((order) =>
-            order.id === orderId ? { ...order, status, updatedAt } : order,
-          ),
-        );
+        const order = orders.find((item) => item.id === orderId);
 
-        void updateFirestoreDocument(FIRESTORE_COLLECTIONS.orders, orderId, {
+        if (!order) {
+          setAuthError("Order not found.");
+          return false;
+        }
+
+        const currentProduct = products.find((product) => product.id === order.productId);
+        const updatedAt = new Date().toISOString();
+        const shouldDeductStock = status === ORDER_STATUS.ACCEPTED && order.status === ORDER_STATUS.PENDING;
+        const shouldRestoreStock =
+          [ORDER_STATUS.REJECTED, ORDER_STATUS.CANCELLED].includes(status)
+          && hasAcceptedStockDeduction(order.status);
+        const nextStock = shouldDeductStock
+          ? Math.max(0, Number(currentProduct?.stock || 0) - Number(order.quantity || 0))
+          : shouldRestoreStock
+            ? Number(currentProduct?.stock || 0) + Number(order.quantity || 0)
+            : Number(currentProduct?.stock || 0);
+        const nextOrder = {
+          ...order,
           status,
           updatedAt,
-        }).catch((error) => {
+          acceptedAt: status === ORDER_STATUS.ACCEPTED ? updatedAt : order.acceptedAt,
+          dispatchedAt: status === ORDER_STATUS.DISPATCHED ? updatedAt : order.dispatchedAt,
+          deliveredAt: status === ORDER_STATUS.DELIVERED ? updatedAt : order.deliveredAt,
+          completedAt: status === ORDER_STATUS.COMPLETED ? updatedAt : order.completedAt,
+        };
+        const buyerNotification = {
+          id: `notif-${Date.now()}`,
+          type: "order",
+          title: `Order ${status.toLowerCase()}`,
+          description: `${order.productName} is now ${status.toLowerCase()} for ${order.pickupArea}.`,
+          time: "Just now",
+          read: false,
+          createdAt: updatedAt,
+          orderId: order.id,
+          targetUserEmail: order.buyerEmail,
+        };
+
+        setAuthError(null);
+        setOrders((current) =>
+          current.map((currentOrder) =>
+            currentOrder.id === orderId ? nextOrder : currentOrder,
+          ),
+        );
+        if (shouldDeductStock || shouldRestoreStock) {
+          setProducts((current) =>
+            current.map((product) =>
+              product.id === order.productId
+                ? { ...product, stock: nextStock, updatedAt }
+                : product,
+            ),
+          );
+        }
+        setNotifications((current) => [buyerNotification, ...current]);
+
+        void Promise.all([
+          syncDocumentToFirestore(FIRESTORE_COLLECTIONS.orders, nextOrder),
+          syncDocumentToFirestore(FIRESTORE_COLLECTIONS.notifications, buyerNotification),
+          shouldDeductStock || shouldRestoreStock
+            ? updateFirestoreDocument(FIRESTORE_COLLECTIONS.products, order.productId, {
+                stock: nextStock,
+                updatedAt,
+              })
+            : Promise.resolve(),
+        ]).catch((error) => {
           console.error("Failed to update order status in Firestore:", error);
         });
+        return true;
       },
       orders,
       signOut: async () => {

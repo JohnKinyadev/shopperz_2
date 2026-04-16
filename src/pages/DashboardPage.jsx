@@ -4,18 +4,20 @@ import { formatCurrency } from "../lib/productUtils";
 
 function DashboardPage() {
   const {
+    cancelOrder,
+    compareItems,
+    currentSellerRequest,
     messages,
     notifications,
     orders,
     products,
     profile,
     savedItems,
-    currentSellerRequest,
-    compareItems,
   } = useMarketplace();
   const savedProducts = products.filter((product) => savedItems.includes(product.id));
   const recentMessages = [...messages].slice(-4).reverse();
   const latestNotifications = notifications.slice(0, 3);
+  const myOrders = orders.filter((order) => order.buyerEmail === profile.email);
   const updateCount = messages.length + notifications.length + orders.length;
   const shouldHideSellerName = profile.role === "Buyer";
   const sellerShopPath = profile.sellerId
@@ -87,6 +89,44 @@ function DashboardPage() {
       </section>
 
       <div className="dashboard-grid">
+        <section className="panel">
+          <div className="panel-heading">
+            <div>
+              <p className="panel-kicker">Orders</p>
+              <h2>{myOrders.length} tracked purchases</h2>
+            </div>
+          </div>
+
+          <div className="dashboard-list">
+            {myOrders.length > 0 ? (
+              myOrders.map((order) => (
+                <article key={order.id} className="dashboard-row">
+                  <div>
+                    <strong>{order.productName}</strong>
+                    <span>
+                      {order.status} - {order.quantity} item(s) to {order.pickupArea}
+                    </span>
+                  </div>
+                  {[ "Pending", "Accepted", "Preparing" ].includes(order.status) ? (
+                    <button type="button" className="ghost-button" onClick={() => cancelOrder(order.id)}>
+                      Cancel order
+                    </button>
+                  ) : (
+                    <span>{formatCurrency(order.totalPrice)}</span>
+                  )}
+                </article>
+              ))
+            ) : (
+              <article className="dashboard-row">
+                <div>
+                  <strong>No purchases yet</strong>
+                  <span>Orders you place will appear here for tracking.</span>
+                </div>
+              </article>
+            )}
+          </div>
+        </section>
+
         <section className="panel">
           <div className="panel-heading">
             <div>

@@ -11,8 +11,13 @@ function findRelatedProduct(text, products) {
 }
 
 function buildOrderTitle(status) {
+  if (status === "Accepted") return "Order accepted";
+  if (status === "Preparing") return "Order being prepared";
   if (status === "Dispatched") return "Order dispatched";
-  if (status === "Arrived") return "Order delivered";
+  if (status === "Delivered") return "Order delivered to pickup point";
+  if (status === "Completed") return "Order completed";
+  if (status === "Rejected") return "Order rejected";
+  if (status === "Cancelled") return "Order cancelled";
   return "Order update";
 }
 

@@ -16,6 +16,21 @@ const defaultProductForm = {
   specs: {},
 };
 
+function getOrderStatusOptions(currentStatus) {
+  const orderStatusFlow = {
+    Pending: ["Pending", "Accepted", "Rejected"],
+    Accepted: ["Accepted", "Preparing", "Cancelled"],
+    Preparing: ["Preparing", "Dispatched", "Cancelled"],
+    Dispatched: ["Dispatched", "Delivered"],
+    Delivered: ["Delivered", "Completed"],
+    Completed: ["Completed"],
+    Rejected: ["Rejected"],
+    Cancelled: ["Cancelled"],
+  };
+
+  return orderStatusFlow[currentStatus] || [currentStatus];
+}
+
 function SellerPage() {
   const { sellerId } = useParams();
   const {
@@ -246,15 +261,22 @@ function SellerPage() {
                 <article key={order.id} className="dashboard-row" style={{ marginBottom: "12px" }}>
                   <div>
                     <strong>{order.productName}</strong>
-                    <span>{order.status}</span>
+                    <span>
+                      {order.status} - {order.quantity} item(s) for {order.pickupArea}
+                    </span>
+                    <span>
+                      {order.buyerName} - {order.deliveryLocation} - {order.buyerPhone}
+                    </span>
                   </div>
                   <select
                     value={order.status}
                     onChange={(event) => updateOrderStatus(order.id, event.target.value)}
                   >
-                    <option value="Pending">Pending</option>
-                    <option value="Dispatched">Dispatched</option>
-                    <option value="Arrived">Arrived</option>
+                    {getOrderStatusOptions(order.status).map((status) => (
+                      <option key={status} value={status}>
+                        {status}
+                      </option>
+                    ))}
                   </select>
                 </article>
               ))}
