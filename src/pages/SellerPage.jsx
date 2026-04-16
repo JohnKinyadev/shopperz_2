@@ -39,7 +39,7 @@ function SellerPage() {
     );
   }
 
-  const isSellerOwner = profile.role === "Seller" && profile.sellerId === seller.id;
+  const isSellerOwner = profile.sellerId === seller.id;
   const sellerProducts = products.filter((product) => product.sellerId === seller.id);
 
   function handleProductChange(event) {

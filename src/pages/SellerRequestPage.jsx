@@ -22,10 +22,10 @@ function SellerRequestPage() {
 
   // Redirect to seller store if already a seller
   useEffect(() => {
-    if (profile.role === "Seller" && profile.sellerId) {
+    if (profile.sellerId) {
       navigate(`/sellers/${profile.sellerId}`);
     }
-  }, [navigate, profile.role, profile.sellerId]);
+  }, [navigate, profile.sellerId]);
 
   function handleChange(event) {
     const { name, value } = event.target;
@@ -52,12 +52,6 @@ function SellerRequestPage() {
     : currentSellerRequest?.sellerId
       ? `/sellers/${currentSellerRequest.sellerId}`
       : "/dashboard";
-
-  useEffect(() => {
-    if (currentUser.isAdmin) {
-      navigate("/admin");
-    }
-  }, [currentUser.isAdmin, navigate, profile.role, profile.sellerId]);
 
   return (
     <div className="auth-layout">

@@ -53,12 +53,43 @@ function buildProductHighlights(productData, tags) {
     : fallbackHighlightsByCategory[productData.category] || ["Featured product", "Ready to ship", "Limited stock"];
 }
 
+function buildSellerFromRequest(request) {
+  return {
+    id: request.sellerId,
+    name: request.storeName,
+    tagline: request.tagline,
+    responseTime: request.responseTime,
+    rating: 4.9,
+    location: request.location,
+    followers: 0,
+    joined: new Date().getFullYear().toString(),
+    coverImage: request.coverImage,
+  };
+}
+
 function loadStoredState() {
   try {
     const storedValue = localStorage.getItem(STORAGE_KEY);
     return storedValue ? JSON.parse(storedValue) : null;
   } catch {
     return null;
+  }
+}
+
+function formatAuthError(error) {
+  switch (error?.code) {
+    case "auth/email-already-in-use":
+      return "Email already in use.";
+    case "auth/invalid-credential":
+    case "auth/wrong-password":
+    case "auth/user-not-found":
+      return "Invalid email or password.";
+    case "auth/weak-password":
+      return "Password should be at least 6 characters.";
+    case "auth/invalid-email":
+      return "Enter a valid email address.";
+    default:
+      return error?.message ?? "Something went wrong. Please try again.";
   }
 }
 
@@ -72,13 +103,18 @@ function buildDefaultProfile() {
   };
 }
 
-function buildAdminProfile(email = DEMO_ADMIN_CREDENTIALS.email, name = DEMO_ADMIN_CREDENTIALS.name) {
+function buildAdminProfile(
+  email = DEMO_ADMIN_CREDENTIALS.email,
+  name = DEMO_ADMIN_CREDENTIALS.name,
+  overrides = {},
+) {
   return {
     name,
     role: "Admin",
     location: "Head office",
     email,
     preference: "Approve sellers and manage the marketplace",
+    ...overrides,
   };
 }
 
@@ -118,15 +154,21 @@ export function MarketplaceProvider({ children }) {
         setCurrentUser((current) =>
           current.sessionType === "local-admin" ? current : buildSignedOutUser(current.mode),
         );
-        setProfile((current) =>
-          current.role === "Admin" || current.email !== buildDefaultProfile().email
-            ? buildDefaultProfile()
-            : current,
-        );
+        if (currentUser.sessionType !== "local-admin") {
+          setProfile((current) =>
+            current.role === "Admin" || current.email !== buildDefaultProfile().email
+              ? buildDefaultProfile()
+              : current,
+          );
+        }
         return;
       }
 
       const isAdmin = ADMIN_EMAILS.includes(user.email);
+      const approvedRequest = sellerRequests.find(
+        (request) => request.requesterEmail === user.email && request.status === "Approved",
+      );
+
       setCurrentUser({
         isAuthenticated: true,
         mode: "signin",
@@ -136,13 +178,30 @@ export function MarketplaceProvider({ children }) {
       });
 
       if (isAdmin) {
-        setProfile(buildAdminProfile(user.email, user.displayName || DEMO_ADMIN_CREDENTIALS.name));
+        setProfile(
+          buildAdminProfile(
+            user.email,
+            user.displayName || DEMO_ADMIN_CREDENTIALS.name,
+            approvedRequest
+              ? {
+                  location: approvedRequest.location,
+                  sellerId: approvedRequest.sellerId,
+                  sellerName: approvedRequest.storeName,
+                  responseTime: approvedRequest.responseTime,
+                }
+              : {},
+          ),
+        );
+        if (approvedRequest) {
+          setSellers((current) => {
+            if (current.some((seller) => seller.id === approvedRequest.sellerId)) {
+              return current;
+            }
+            return [...current, buildSellerFromRequest(approvedRequest)];
+          });
+        }
         return;
       }
-
-      const approvedRequest = sellerRequests.find(
-        (request) => request.requesterEmail === user.email && request.status === "Approved",
-      );
 
       if (approvedRequest) {
         setProfile({
@@ -159,7 +218,7 @@ export function MarketplaceProvider({ children }) {
           if (current.some((seller) => seller.id === approvedRequest.sellerId)) {
             return current;
           }
-          return [...current, approvedRequest.sellerProfile];
+          return [...current, buildSellerFromRequest(approvedRequest)];
         });
         return;
       }
@@ -174,7 +233,7 @@ export function MarketplaceProvider({ children }) {
     });
 
     return unsubscribe;
-  }, [sellerRequests]);
+  }, [sellerRequests, currentUser.isAdmin, currentUser.sessionType, currentUser.user?.email]);
 
   useEffect(() => {
     localStorage.setItem(
@@ -309,7 +368,7 @@ export function MarketplaceProvider({ children }) {
           setAuthError(null);
           await signInWithEmailAndPassword(auth, email, credentials.password);
         } catch (error) {
-          setAuthError(error.message);
+          setAuthError(formatAuthError(error));
         }
       },
       signUp: async (details) => {
@@ -319,17 +378,17 @@ export function MarketplaceProvider({ children }) {
         }
         try {
           setAuthError(null);
-          const userCredential = await createUserWithEmailAndPassword(auth, details.email, details.password);
+          await createUserWithEmailAndPassword(auth, details.email.trim().toLowerCase(), details.password);
           setSavedItems([]);
           setCompareItems([]);
           // Update profile with name
           setProfile({
             ...buildDefaultProfile(),
             name: details.name,
-            email: details.email,
+            email: details.email.trim().toLowerCase(),
           });
         } catch (error) {
-          setAuthError(error.message);
+          setAuthError(formatAuthError(error));
         }
       },
       becomeSeller: async (sellerDetails) => {
@@ -338,12 +397,7 @@ export function MarketplaceProvider({ children }) {
           return null;
         }
 
-        if (currentUser.isAdmin) {
-          setAuthError("Admin accounts cannot request seller approval.");
-          return null;
-        }
-
-        if (profile.role === "Seller") {
+        if (profile.sellerId) {
           setAuthError("You are already a seller.");
           return null;
         }
@@ -404,17 +458,7 @@ export function MarketplaceProvider({ children }) {
           ),
         );
 
-        const approvedSeller = {
-          id: request.sellerId,
-          name: request.storeName,
-          tagline: request.tagline,
-          responseTime: request.responseTime,
-          rating: 4.9,
-          location: request.location,
-          followers: 0,
-          joined: new Date().getFullYear().toString(),
-          coverImage: request.coverImage,
-        };
+        const approvedSeller = buildSellerFromRequest(request);
         setSellers((current) => {
           if (current.some((seller) => seller.id === request.sellerId)) return current;
           return [...current, approvedSeller];
@@ -423,7 +467,7 @@ export function MarketplaceProvider({ children }) {
         if (currentUser.user?.email === request.requesterEmail) {
           setProfile((current) => ({
             ...current,
-            role: "Seller",
+            role: current.role === "Admin" || currentUser.isAdmin ? "Admin" : "Seller",
             sellerId: request.sellerId,
             sellerName: request.storeName,
             location: request.location,
@@ -440,7 +484,7 @@ export function MarketplaceProvider({ children }) {
       },
       sellerRequests,
       addProduct: (productData) => {
-        if (profile.role !== "Seller" || !profile.sellerId) {
+        if (!profile.sellerId) {
           setAuthError("Only sellers can add products.");
           return null;
         }

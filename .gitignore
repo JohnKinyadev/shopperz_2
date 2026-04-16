@@ -1,4 +1,6 @@
 node_modules/
 dist/
-.env.local
+.env
+.env.*
+!.env.example
 karsten-winegeart-CZtK_E89omo-unsplash.jpg

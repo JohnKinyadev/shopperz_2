@@ -23,7 +23,7 @@ function DashboardPage() {
       ? `/sellers/${currentSellerRequest.sellerId}`
       : "/seller-request";
   const sellerCardTitle =
-    profile.role === "Seller"
+    profile.sellerId
       ? "My store"
       : currentSellerRequest?.status === "Pending"
         ? "Pending"
@@ -31,7 +31,7 @@ function DashboardPage() {
           ? "My store"
           : "Apply";
   const sellerCardText =
-    profile.role === "Seller"
+    profile.sellerId
       ? "Manage my shop"
       : currentSellerRequest?.status === "Pending"
         ? "Seller request pending"
