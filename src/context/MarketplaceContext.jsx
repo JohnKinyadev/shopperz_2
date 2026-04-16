@@ -63,6 +63,25 @@ function mapSnapshotDocs(snapshot) {
   }));
 }
 
+function stripUndefinedFields(value) {
+  if (Array.isArray(value)) {
+    return value.map((item) => stripUndefinedFields(item));
+  }
+
+  if (value && typeof value === "object") {
+    return Object.entries(value).reduce((collection, [key, entryValue]) => {
+      if (entryValue === undefined) {
+        return collection;
+      }
+
+      collection[key] = stripUndefinedFields(entryValue);
+      return collection;
+    }, {});
+  }
+
+  return value;
+}
+
 function compareItems(a, b, fields = [], direction = "asc") {
   for (const field of fields) {
     const aValue = a?.[field];
@@ -126,7 +145,7 @@ function syncDocumentToFirestore(collectionName, documentData) {
     return Promise.resolve();
   }
 
-  return setDoc(doc(db, collectionName, documentData.id), documentData);
+  return setDoc(doc(db, collectionName, documentData.id), stripUndefinedFields(documentData));
 }
 
 function updateFirestoreDocument(collectionName, documentId, updates) {
@@ -134,7 +153,7 @@ function updateFirestoreDocument(collectionName, documentId, updates) {
     return Promise.resolve();
   }
 
-  return updateDoc(doc(db, collectionName, documentId), updates);
+  return updateDoc(doc(db, collectionName, documentId), stripUndefinedFields(updates));
 }
 
 function removeFirestoreDocument(collectionName, documentId) {
