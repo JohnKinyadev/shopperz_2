@@ -122,7 +122,7 @@ async function seedCollectionIfEmpty(collectionName, items) {
 }
 
 function syncDocumentToFirestore(collectionName, documentData) {
-  if (!firebaseReady || !db) {
+  if (!firebaseReady || !db || !auth?.currentUser) {
     return Promise.resolve();
   }
 
@@ -130,7 +130,7 @@ function syncDocumentToFirestore(collectionName, documentData) {
 }
 
 function updateFirestoreDocument(collectionName, documentId, updates) {
-  if (!firebaseReady || !db) {
+  if (!firebaseReady || !db || !auth?.currentUser) {
     return Promise.resolve();
   }
 
@@ -270,7 +270,7 @@ export function MarketplaceProvider({ children }) {
     let unsubscribers = [];
 
     async function connectFirestoreCollections() {
-      if (currentUser.isAuthenticated) {
+      if (auth?.currentUser) {
         try {
           await Promise.all([
             seedCollectionIfEmpty(FIRESTORE_COLLECTIONS.products, seedData.products),
@@ -315,7 +315,7 @@ export function MarketplaceProvider({ children }) {
       isMounted = false;
       unsubscribers.forEach((unsubscribe) => unsubscribe?.());
     };
-  }, [seedData, currentUser.isAuthenticated]);
+  }, [seedData, currentUser.sessionType, currentUser.user?.uid]);
 
   useEffect(() => {
     if (!firebaseReady || !auth) return;
